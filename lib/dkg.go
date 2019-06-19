@@ -5,8 +5,8 @@ import (
 	"encoding/gob"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/utils"
+	"dgamingfoundation/dkglib/lib/client"
+	utils "dgamingfoundation/dkglib/lib/client/utils"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/dgamingfoundation/randapp/x/randapp"
@@ -17,12 +17,12 @@ import (
 )
 
 type OnChainDKG struct {
-	cli    *context.CLIContext
+	cli    *client.CLIContext
 	txBldr *authtxb.TxBuilder
 	dealer consensus.Dealer
 }
 
-func NewOnChainDKG(cli *context.CLIContext, txBldr *authtxb.TxBuilder) *OnChainDKG {
+func NewOnChainDKG(cli *client.CLIContext, txBldr *authtxb.TxBuilder) *OnChainDKG {
 	return &OnChainDKG{
 		cli:    cli,
 		txBldr: txBldr,

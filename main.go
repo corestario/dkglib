@@ -2,15 +2,14 @@ package main
 
 import (
 	"dgamingfoundation/dkglib/lib"
+	utils "dgamingfoundation/dkglib/lib/client/utils"
 	"fmt"
 	"os"
 	"path"
 	"sync"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/utils"
+	client "dgamingfoundation/dkglib/lib/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/dgamingfoundation/randapp/util"
@@ -21,8 +20,8 @@ import (
 )
 
 const (
-	cliHome      = "/Users/andrei/.rcli"   // TODO: get this from command line args
-	nodeEndpoint = "tcp://localhost:26657" // TODO: get this from command line args
+	cliHome      = "/Users/pr0n00gler/.rcli" // TODO: get this from command line args
+	nodeEndpoint = "tcp://localhost:26657"   // TODO: get this from command line args
 )
 
 func main() {
@@ -78,12 +77,12 @@ func getValidatorEnv() (*types.Validator, types.PrivValidator) {
 	return types.NewValidator(pv.GetPubKey(), 1), pv
 }
 
-func getTools(validatorName string) (*context.CLIContext, *authtxb.TxBuilder, error) {
+func getTools(validatorName string) (*client.CLIContext, *authtxb.TxBuilder, error) {
 	if err := initConfig(validatorName); err != nil {
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
 	cdc := util.MakeCodec()
-	cliCtx := context.NewCLIContext().WithCodec(cdc)
+	cliCtx := client.NewCLIContext().WithCodec(cdc)
 	txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 	if err := cliCtx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
@@ -95,7 +94,7 @@ func getTools(validatorName string) (*context.CLIContext, *authtxb.TxBuilder, er
 func initConfig(validatorName string) error {
 	viper.Set(client.FlagNode, nodeEndpoint)
 	viper.Set(client.FlagFrom, validatorName)
-	viper.Set("home", "/Users/andrei/.rd")
+	viper.Set("home", "/Users/pr0n00gler/.rd")
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
