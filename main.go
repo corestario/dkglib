@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	client "dgamingfoundation/dkglib/lib/client"
+	cliCTX "dgamingfoundation/dkglib/lib/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/dgamingfoundation/randapp/util"
@@ -77,12 +77,16 @@ func getValidatorEnv() (*types.Validator, types.PrivValidator) {
 	return types.NewValidator(pv.GetPubKey(), 1), pv
 }
 
-func getTools(validatorName string) (*client.CLIContext, *authtxb.TxBuilder, error) {
+func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, error) {
 	if err := initConfig(validatorName); err != nil {
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
 	cdc := util.MakeCodec()
-	cliCtx := client.NewCLIContext().WithCodec(cdc)
+	cliCtx, err := cliCTX.NewCLIContext("1", "localhost:26657", "", false, "", "", 1, false, false, "", false, false, false, false, "~/.rd")
+	if err != nil {
+		return nil, nil, err
+	}
+	cliCtx = cliCtx.WithCodec(cdc)
 	txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
 	if err := cliCtx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
@@ -92,8 +96,8 @@ func getTools(validatorName string) (*client.CLIContext, *authtxb.TxBuilder, err
 }
 
 func initConfig(validatorName string) error {
-	viper.Set(client.FlagNode, nodeEndpoint)
-	viper.Set(client.FlagFrom, validatorName)
+	//viper.Set(cliCTX.FlagNode, nodeEndpoint)
+	//viper.Set(cliCTX.FlagFrom, validatorName)
 	viper.Set("home", "/Users/pr0n00gler/.rd")
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
