@@ -1,15 +1,14 @@
 package keys
 
 import (
+	"dgamingfoundation/dkglib/lib/client/context"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/olekukonko/tablewriter"
-	"github.com/spf13/viper"
-	"github.com/tendermint/tendermint/libs/cli"
 
-	"github.com/cosmos/cosmos-sdk/client"
+	"dgamingfoundation/dkglib/lib/client"
 	"github.com/cosmos/cosmos-sdk/crypto/keys"
 )
 
@@ -26,8 +25,8 @@ type bechKeyOutFn func(keyInfo keys.Info) (keys.KeyOutput, error)
 
 // GetKeyInfo returns key info for a given name. An error is returned if the
 // keybase cannot be retrieved or getting the info fails.
-func GetKeyInfo(name string) (keys.Info, error) {
-	keybase, err := NewKeyBaseFromHomeFlag()
+func GetKeyInfo(name string, ctx context.CLIContext) (keys.Info, error) {
+	keybase, err := NewKeyBaseFromDir(ctx.Home)
 	if err != nil {
 		return nil, err
 	}
@@ -39,10 +38,10 @@ func GetKeyInfo(name string) (keys.Info, error) {
 // the key info for that name if the type is local, it'll fetch input from
 // STDIN. Otherwise, an empty passphrase is returned. An error is returned if
 // the key info cannot be fetched or reading from STDIN fails.
-func GetPassphrase(name string) (string, error) {
+func GetPassphrase(name string, ctx context.CLIContext) (string, error) {
 	var passphrase string
 
-	keyInfo, err := GetKeyInfo(name)
+	keyInfo, err := GetKeyInfo(name, ctx)
 	if err != nil {
 		return passphrase, err
 	}
@@ -73,12 +72,6 @@ func ReadPassphraseFromStdin(name string) (string, error) {
 	return passphrase, nil
 }
 
-// NewKeyBaseFromHomeFlag initializes a Keybase based on the configuration.
-func NewKeyBaseFromHomeFlag() (keys.Keybase, error) {
-	rootDir := viper.GetString(cli.HomeFlag)
-	return NewKeyBaseFromDir(rootDir)
-}
-
 // NewKeyBaseFromDir initializes a keybase at a particular dir.
 func NewKeyBaseFromDir(rootDir string) (keys.Keybase, error) {
 	return getLazyKeyBaseFromDir(rootDir)
@@ -107,20 +100,20 @@ func printMultiSigKeyInfo(keyInfo keys.Info, bechKeyOut bechKeyOutFn) {
 	table.Render()
 }
 
-func printKeyInfo(keyInfo keys.Info, bechKeyOut bechKeyOutFn) {
+func printKeyInfo(keyInfo keys.Info, bechKeyOut bechKeyOutFn, ctx context.CLIContext) {
 	ko, err := bechKeyOut(keyInfo)
 	if err != nil {
 		panic(err)
 	}
 
-	switch viper.Get(cli.OutputFlag) {
+	switch ctx.OutputFormat {
 	case OutputFormatText:
 		printTextInfos([]keys.KeyOutput{ko})
 
 	case OutputFormatJSON:
 		var out []byte
 		var err error
-		if viper.GetBool(client.FlagIndentResponse) {
+		if ctx.Indent {
 			out, err = cdc.MarshalJSONIndent(ko, "", "  ")
 		} else {
 			out, err = cdc.MarshalJSON(ko)
@@ -133,13 +126,13 @@ func printKeyInfo(keyInfo keys.Info, bechKeyOut bechKeyOutFn) {
 	}
 }
 
-func printInfos(infos []keys.Info) {
+func printInfos(infos []keys.Info, ctx context.CLIContext) {
 	kos, err := keys.Bech32KeysOutput(infos)
 	if err != nil {
 		panic(err)
 	}
 
-	switch viper.Get(cli.OutputFlag) {
+	switch ctx.OutputFormat {
 	case OutputFormatText:
 		printTextInfos(kos)
 
@@ -147,7 +140,7 @@ func printInfos(infos []keys.Info) {
 		var out []byte
 		var err error
 
-		if viper.GetBool(client.FlagIndentResponse) {
+		if ctx.Indent {
 			out, err = cdc.MarshalJSONIndent(kos, "", "  ")
 		} else {
 			out, err = cdc.MarshalJSON(kos)

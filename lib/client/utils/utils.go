@@ -13,7 +13,7 @@ import (
 	amino "github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/common"
 
-	"github.com/cosmos/cosmos-sdk/client/keys"
+	"dgamingfoundation/dkglib/lib/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
@@ -78,7 +78,7 @@ func CompleteAndBroadcastTxCLI(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 	//	}
 	//}
 
-	passphrase, err := keys.GetPassphrase(fromName)
+	passphrase, err := keys.GetPassphrase(fromName, cliCtx)
 	if err != nil {
 		return err
 	}
@@ -182,7 +182,7 @@ func SignStdTx(
 		}
 	}
 
-	passphrase, err := keys.GetPassphrase(name)
+	passphrase, err := keys.GetPassphrase(name, cliCtx)
 	if err != nil {
 		return signedStdTx, err
 	}
@@ -209,7 +209,7 @@ func SignStdTxWithSignerAddress(txBldr authtxb.TxBuilder, cliCtx context.CLICont
 		}
 	}
 
-	passphrase, err := keys.GetPassphrase(name)
+	passphrase, err := keys.GetPassphrase(name, cliCtx)
 	if err != nil {
 		return signedStdTx, err
 	}

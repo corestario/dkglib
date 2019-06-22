@@ -52,6 +52,7 @@ type CLIContext struct {
 	FromName      string
 	Indent        bool
 	SkipConfirm   bool
+	Home          string
 }
 
 // NewCLIContext returns a new initialized CLIContext
@@ -97,6 +98,7 @@ func NewCLIContext(chainID string, nodeURI string, from string, genOnly bool, vf
 		FromName:      fromName,
 		Indent:        indent,
 		SkipConfirm:   skipConfirm,
+		Home:          home,
 	}
 	return cli, nil
 }

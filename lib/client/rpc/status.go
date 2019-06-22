@@ -1,34 +1,15 @@
 package rpc
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
 	"dgamingfoundation/dkglib/lib/client/context"
-	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 )
-
-// StatusCommand returns the status of the network
-func StatusCommand() *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "status",
-		Short: "Query remote node for status",
-		RunE:  printNodeStatus,
-	}
-
-	cmd.Flags().StringP(client.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
-	viper.BindPFlag(client.FlagNode, cmd.Flags().Lookup(client.FlagNode))
-	cmd.Flags().Bool(client.FlagIndentResponse, false, "Add indent to JSON response")
-	return cmd
-}
 
 func getNodeStatus(cliCtx context.CLIContext) (*ctypes.ResultStatus, error) {
 	// get the node
@@ -38,31 +19,6 @@ func getNodeStatus(cliCtx context.CLIContext) (*ctypes.ResultStatus, error) {
 	}
 
 	return node.Status()
-}
-
-// CMD
-
-func printNodeStatus(cmd *cobra.Command, args []string) error {
-	// No need to verify proof in getting node status
-	viper.Set(client.FlagTrustNode, true)
-	cliCtx := context.NewCLIContext()
-	status, err := getNodeStatus(cliCtx)
-	if err != nil {
-		return err
-	}
-
-	var output []byte
-	if cliCtx.Indent {
-		output, err = cdc.MarshalJSONIndent(status, "", "  ")
-	} else {
-		output, err = cdc.MarshalJSON(status)
-	}
-	if err != nil {
-		return err
-	}
-
-	fmt.Println(string(output))
-	return nil
 }
 
 // REST

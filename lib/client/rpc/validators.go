@@ -8,61 +8,12 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
 	tmtypes "github.com/tendermint/tendermint/types"
 
 	"dgamingfoundation/dkglib/lib/client/context"
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 )
-
-// TODO these next two functions feel kinda hacky based on their placement
-
-//ValidatorCommand returns the validator set for a given height
-func ValidatorCommand(cdc *codec.Codec) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "tendermint-validator-set [height]",
-		Short: "Get the full tendermint validator set at given height",
-		Args:  cobra.MaximumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var height *int64
-
-			// optional height
-			if len(args) > 0 {
-				h, err := strconv.Atoi(args[0])
-				if err != nil {
-					return err
-				}
-				if h > 0 {
-					tmp := int64(h)
-					height = &tmp
-				}
-			}
-
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			result, err := GetValidators(cliCtx, height)
-			if err != nil {
-				return err
-			}
-
-			return cliCtx.PrintOutput(result)
-		},
-	}
-
-	cmd.Flags().StringP(client.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
-	viper.BindPFlag(client.FlagNode, cmd.Flags().Lookup(client.FlagNode))
-	cmd.Flags().Bool(client.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
-	viper.BindPFlag(client.FlagTrustNode, cmd.Flags().Lookup(client.FlagTrustNode))
-	cmd.Flags().Bool(client.FlagIndentResponse, false, "indent JSON response")
-	viper.BindPFlag(client.FlagIndentResponse, cmd.Flags().Lookup(client.FlagIndentResponse))
-
-	return cmd
-}
 
 // Validator output in bech32 format
 type ValidatorOutput struct {

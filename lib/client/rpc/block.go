@@ -2,31 +2,13 @@ package rpc
 
 import (
 	"dgamingfoundation/dkglib/lib/client/context"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
-	"github.com/spf13/cobra"
-
 	tmliteProxy "github.com/tendermint/tendermint/lite/proxy"
 )
-
-//BlockCommand returns the verified block data for a given heights
-//func BlockCommand() *cobra.Command {
-//	cmd := &cobra.Command{
-//		Use:   "block [height]",
-//		Short: "Get verified data for a the block at given height",
-//		Args:  cobra.MaximumNArgs(1),
-//		RunE:  printBlock,
-//	}
-//	cmd.Flags().StringP(client.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
-//	viper.BindPFlag(client.FlagNode, cmd.Flags().Lookup(client.FlagNode))
-//	cmd.Flags().Bool(client.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
-//	viper.BindPFlag(client.FlagTrustNode, cmd.Flags().Lookup(client.FlagTrustNode))
-//	return cmd
-//}
 
 func getBlock(cliCtx context.CLIContext, height *int64) ([]byte, error) {
 	// get the node
@@ -78,30 +60,6 @@ func GetChainHeight(cliCtx context.CLIContext) (int64, error) {
 	}
 	height := status.SyncInfo.LatestBlockHeight
 	return height, nil
-}
-
-// CMD
-
-func printBlock(cmd *cobra.Command, args []string) error {
-	var height *int64
-	// optional height
-	if len(args) > 0 {
-		h, err := strconv.Atoi(args[0])
-		if err != nil {
-			return err
-		}
-		if h > 0 {
-			tmp := int64(h)
-			height = &tmp
-		}
-	}
-
-	output, err := getBlock(context.NewCLIContext(), height)
-	if err != nil {
-		return err
-	}
-	fmt.Println(string(output))
-	return nil
 }
 
 // REST

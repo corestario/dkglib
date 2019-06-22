@@ -9,19 +9,16 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/rakyll/statik/fs"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/log"
 	rpcserver "github.com/tendermint/tendermint/rpc/lib/server"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
+	"dgamingfoundation/dkglib/lib/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	keybase "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/server"
 
 	// Import statik for light client stuff
-	_ "github.com/cosmos/cosmos-sdk/client/lcd/statik"
+	_ "dgamingfoundation/dkglib/lib/client/lcd/statik"
 )
 
 // RestServer represents the Light Client Rest server
@@ -37,9 +34,13 @@ type RestServer struct {
 }
 
 // NewRestServer creates a new rest server instance
-func NewRestServer(cdc *codec.Codec) *RestServer {
+func NewRestServer(cdc *codec.Codec) (*RestServer, error) {
 	r := mux.NewRouter()
-	cliCtx := context.NewCLIContext().WithCodec(cdc).WithAccountDecoder(cdc)
+	cliCtx, err := context.NewCLIContext("1", "localhost:26657", "", false, "", "", 1, false, false, "", false, false, false, false, "~/.rd")
+	if err != nil {
+		return nil, err
+	}
+	cliCtx = cliCtx.WithCodec(cdc).WithAccountDecoder(cdc)
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "rest-server")
 
 	return &RestServer{
@@ -47,11 +48,11 @@ func NewRestServer(cdc *codec.Codec) *RestServer {
 		CliCtx: cliCtx,
 		Cdc:    cdc,
 		log:    logger,
-	}
+	}, nil
 }
 
 // Start starts the rest server
-func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTimeout uint) (err error) {
+func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTimeout uint, ctx context.CLIContext) (err error) {
 	server.TrapSignal(func() {
 		err := rs.listener.Close()
 		rs.log.Error("error closing listener", "err", err)
@@ -70,38 +71,11 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 	rs.log.Info(
 		fmt.Sprintf(
 			"Starting application REST service (chain-id: %q)...",
-			viper.GetString(client.FlagChainID),
+			ctx.Verifier.ChainID(),
 		),
 	)
 
 	return rpcserver.StartHTTPServer(rs.listener, rs.Mux, rs.log, cfg)
-}
-
-// ServeCommand will start the application REST service as a blocking process. It
-// takes a codec to create a RestServer object and a function to register all
-// necessary routes.
-func ServeCommand(cdc *codec.Codec, registerRoutesFn func(*RestServer)) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "rest-server",
-		Short: "Start LCD (light-client daemon), a local REST server",
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			rs := NewRestServer(cdc)
-
-			registerRoutesFn(rs)
-
-			// Start the rest server and return error if one exists
-			err = rs.Start(
-				viper.GetString(client.FlagListenAddr),
-				viper.GetInt(client.FlagMaxOpenConnections),
-				uint(viper.GetInt(client.FlagRPCReadTimeout)),
-				uint(viper.GetInt(client.FlagRPCWriteTimeout)),
-			)
-
-			return err
-		},
-	}
-
-	return client.RegisterRestServerFlags(cmd)
 }
 
 func (rs *RestServer) registerSwaggerUI() {

@@ -1,20 +1,13 @@
 package tx
 
 import (
-	"dgamingfoundation/dkglib/lib/client"
-	"net/http"
-	"strings"
-
-	"github.com/spf13/cobra"
-	amino "github.com/tendermint/go-amino"
-
 	"dgamingfoundation/dkglib/lib/client/context"
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"net/http"
 
 	"io/ioutil"
 
-	"github.com/cosmos/cosmos-sdk/client/utils"
 	"github.com/cosmos/cosmos-sdk/codec"
 )
 
@@ -59,38 +52,4 @@ func BroadcastTxRequest(cliCtx context.CLIContext, cdc *codec.Codec) http.Handle
 
 		rest.PostProcessResponse(w, cdc, res, cliCtx.Indent)
 	}
-}
-
-// GetBroadcastCommand returns the tx broadcast command.
-func GetBroadcastCommand(codec *amino.Codec) *cobra.Command {
-	cmd := &cobra.Command{
-		Use:   "broadcast [file_path]",
-		Short: "Broadcast transactions generated offline",
-		Long: strings.TrimSpace(`Broadcast transactions created with the --generate-only
-flag and signed with the sign command. Read a transaction from [file_path] and
-broadcast it to a node. If you supply a dash (-) argument in place of an input
-filename, the command reads from standard input.
-
-$ <appcli> tx broadcast ./mytxn.json
-`),
-		Args: cobra.ExactArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			cliCtx := context.NewCLIContext().WithCodec(codec)
-			stdTx, err := utils.ReadStdTxFromFile(cliCtx.Codec, args[0])
-			if err != nil {
-				return
-			}
-
-			txBytes, err := cliCtx.Codec.MarshalBinaryLengthPrefixed(stdTx)
-			if err != nil {
-				return
-			}
-
-			res, err := cliCtx.BroadcastTx(txBytes)
-			cliCtx.PrintOutput(res) // nolint:errcheck
-			return err
-		},
-	}
-
-	return client.PostCommands(cmd)[0]
 }
