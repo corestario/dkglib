@@ -9,7 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/cosmos/cosmos-sdk/client/keys"
+	"dgamingfoundation/dkglib/lib/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -65,7 +65,7 @@ func NewCLIContext(chainID string, nodeURI string, from string, genOnly bool, vf
 	if nodeURI != "" {
 		rpc = rpcclient.NewHTTP(nodeURI, "/websocket")
 	}
-	fromAddress, fromName, err := GetFromFields(from, genOnly)
+	fromAddress, fromName, err := GetFromFields(from, genOnly, home)
 	if err != nil {
 		return cli, err
 	}
@@ -266,7 +266,7 @@ func (ctx CLIContext) PrintOutput(toPrint fmt.Stringer) (err error) {
 // GetFromFields returns a from account address and Keybase name given either
 // an address or key name. If genOnly is true, only a valid Bech32 cosmos
 // address is returned.
-func GetFromFields(from string, genOnly bool) (sdk.AccAddress, string, error) {
+func GetFromFields(from string, genOnly bool, home string) (sdk.AccAddress, string, error) {
 	if from == "" {
 		return nil, "", nil
 	}
@@ -280,7 +280,7 @@ func GetFromFields(from string, genOnly bool) (sdk.AccAddress, string, error) {
 		return addr, "", nil
 	}
 
-	keybase, err := keys.NewKeyBaseFromHomeFlag()
+	keybase, err := keys.NewKeyBaseFromDir(home)
 	if err != nil {
 		return nil, "", err
 	}
