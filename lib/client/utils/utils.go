@@ -2,7 +2,6 @@ package utils
 
 import (
 	"bytes"
-	"dgamingfoundation/dkglib/lib/client"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,10 +9,9 @@ import (
 	"dgamingfoundation/dkglib/lib/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 
-	amino "github.com/tendermint/go-amino"
+	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/common"
 
-	"dgamingfoundation/dkglib/lib/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
@@ -78,10 +76,12 @@ func CompleteAndBroadcastTxCLI(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 	//	}
 	//}
 
-	passphrase, err := keys.GetPassphrase(fromName, cliCtx)
-	if err != nil {
-		return err
-	}
+	//passphrase, err := keys.GetPassphrase(fromName, cliCtx)
+	//if err != nil {
+	//	return err
+	//}
+
+	passphrase := ""
 
 	// build and sign the transaction
 	txBytes, err := txBldr.BuildAndSign(fromName, passphrase, msgs)
@@ -156,66 +156,66 @@ func PrintUnsignedStdTx(
 // SignStdTx appends a signature to a StdTx and returns a copy of it. If appendSig
 // is false, it replaces the signatures already attached with the new signature.
 // Don't perform online validation or lookups if offline is true.
-func SignStdTx(
-	txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string,
-	stdTx auth.StdTx, appendSig bool, offline bool,
-) (auth.StdTx, error) {
-
-	var signedStdTx auth.StdTx
-
-	info, err := txBldr.Keybase().Get(name)
-	if err != nil {
-		return signedStdTx, err
-	}
-
-	addr := info.GetPubKey().Address()
-
-	// check whether the address is a signer
-	if !isTxSigner(sdk.AccAddress(addr), stdTx.GetSigners()) {
-		return signedStdTx, fmt.Errorf("%s: %s", client.ErrInvalidSigner, name)
-	}
-
-	if !offline {
-		txBldr, err = populateAccountFromState(txBldr, cliCtx, sdk.AccAddress(addr))
-		if err != nil {
-			return signedStdTx, err
-		}
-	}
-
-	passphrase, err := keys.GetPassphrase(name, cliCtx)
-	if err != nil {
-		return signedStdTx, err
-	}
-
-	return txBldr.SignStdTx(name, passphrase, stdTx, appendSig)
-}
+//func SignStdTx(
+//	txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string,
+//	stdTx auth.StdTx, appendSig bool, offline bool,
+//) (auth.StdTx, error) {
+//
+//	var signedStdTx auth.StdTx
+//
+//	info, err := txBldr.Keybase().Get(name)
+//	if err != nil {
+//		return signedStdTx, err
+//	}
+//
+//	addr := info.GetPubKey().Address()
+//
+//	// check whether the address is a signer
+//	if !isTxSigner(sdk.AccAddress(addr), stdTx.GetSigners()) {
+//		return signedStdTx, fmt.Errorf("%s: %s", client.ErrInvalidSigner, name)
+//	}
+//
+//	if !offline {
+//		txBldr, err = populateAccountFromState(txBldr, cliCtx, sdk.AccAddress(addr))
+//		if err != nil {
+//			return signedStdTx, err
+//		}
+//	}
+//
+//	passphrase, err := keys.GetPassphrase(name, cliCtx)
+//	if err != nil {
+//		return signedStdTx, err
+//	}
+//
+//	return txBldr.SignStdTx(name, passphrase, stdTx, appendSig)
+//}
 
 // SignStdTxWithSignerAddress attaches a signature to a StdTx and returns a copy of a it.
 // Don't perform online validation or lookups if offline is true, else
 // populate account and sequence numbers from a foreign account.
-func SignStdTxWithSignerAddress(txBldr authtxb.TxBuilder, cliCtx context.CLIContext,
-	addr sdk.AccAddress, name string, stdTx auth.StdTx,
-	offline bool) (signedStdTx auth.StdTx, err error) {
-
-	// check whether the address is a signer
-	if !isTxSigner(addr, stdTx.GetSigners()) {
-		return signedStdTx, fmt.Errorf("%s: %s", client.ErrInvalidSigner, name)
-	}
-
-	if !offline {
-		txBldr, err = populateAccountFromState(txBldr, cliCtx, addr)
-		if err != nil {
-			return signedStdTx, err
-		}
-	}
-
-	passphrase, err := keys.GetPassphrase(name, cliCtx)
-	if err != nil {
-		return signedStdTx, err
-	}
-
-	return txBldr.SignStdTx(name, passphrase, stdTx, false)
-}
+//func SignStdTxWithSignerAddress(txBldr authtxb.TxBuilder, cliCtx context.CLIContext,
+//	addr sdk.AccAddress, name string, stdTx auth.StdTx,
+//	offline bool) (signedStdTx auth.StdTx, err error) {
+//
+//	// check whether the address is a signer
+//	if !isTxSigner(addr, stdTx.GetSigners()) {
+//		return signedStdTx, fmt.Errorf("%s: %s", client.ErrInvalidSigner, name)
+//	}
+//
+//	if !offline {
+//		txBldr, err = populateAccountFromState(txBldr, cliCtx, addr)
+//		if err != nil {
+//			return signedStdTx, err
+//		}
+//	}
+//
+//	passphrase, err := keys.GetPassphrase(name, cliCtx)
+//	if err != nil {
+//		return signedStdTx, err
+//	}
+//
+//	return txBldr.SignStdTx(name, passphrase, stdTx, false)
+//}
 
 // Read and decode a StdTx from the given filename.  Can pass "-" to read from stdin.
 func ReadStdTxFromFile(cdc *amino.Codec, filename string) (stdTx auth.StdTx, err error) {

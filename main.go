@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	cliHome      = "/Users/pr0n00gler/.rcli" // TODO: get this from command line args
-	nodeEndpoint = "tcp://localhost:26657"   // TODO: get this from command line args
+	cliHome      = "/Users/pr0n00gler/.nftcli" // TODO: get this from command line args
+	nodeEndpoint = "tcp://localhost:26657"     // TODO: get this from command line args
 )
 
 func main() {
@@ -39,7 +39,7 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for _, pval := range pvals {
-		cli, txBldr, err := getTools("validator0")
+		cli, txBldr, err := getTools("validator1")
 		if err != nil {
 			fmt.Printf("failed to get a randapp client: %v", err)
 			os.Exit(1)
@@ -82,7 +82,7 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
 	cdc := util.MakeCodec()
-	cliCtx, err := cliCTX.NewCLIContext("1", "localhost:26657", "", false, "", "", 1, false, false, "", false, false, false, false, "~/.rd")
+	cliCtx, err := cliCTX.NewCLIContext("NFTChain", "localhost:26657", validatorName, false, "", "", 1, false, false, "", false, false, false, false, cliHome)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -96,9 +96,6 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 }
 
 func initConfig(validatorName string) error {
-	//viper.Set(cliCTX.FlagNode, nodeEndpoint)
-	//viper.Set(cliCTX.FlagFrom, validatorName)
-	viper.Set("home", "/Users/pr0n00gler/.rd")
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
