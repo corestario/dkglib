@@ -2,7 +2,8 @@ package main
 
 import (
 	"dgamingfoundation/dkglib/lib"
-	utils "dgamingfoundation/dkglib/lib/client/utils"
+	"dgamingfoundation/dkglib/lib/client/keys"
+	"dgamingfoundation/dkglib/lib/client/utils"
 	"fmt"
 	"os"
 	"path"
@@ -20,8 +21,8 @@ import (
 )
 
 const (
-	cliHome      = "/Users/pr0n00gler/.nftcli" // TODO: get this from command line args
-	nodeEndpoint = "tcp://localhost:26657"     // TODO: get this from command line args
+	cliHome      = "/Users/pr0n00gler/.rcli" // TODO: get this from command line args
+	nodeEndpoint = "tcp://localhost:26657"   // TODO: get this from command line args
 )
 
 func main() {
@@ -82,12 +83,20 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
 	cdc := util.MakeCodec()
-	cliCtx, err := cliCTX.NewCLIContext("NFTChain", "localhost:26657", validatorName, false, "", "", 1, false, false, "", false, false, false, false, cliHome)
+	cliCtx, err := cliCTX.NewCLIContext("NFTChain", "localhost:26657", validatorName, false, "", "", 0, false, false, "sync", false, false, false, false, cliHome)
 	if err != nil {
 		return nil, nil, err
 	}
-	cliCtx = cliCtx.WithCodec(cdc)
-	txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
+	cliCtx = cliCtx.WithCodec(cdc).WithAccountDecoder(cdc)
+	accNumber, err := cliCtx.GetAccountNumber(cliCtx.FromAddress)
+	if err != nil {
+		return nil, nil, err
+	}
+	kb, err := keys.NewKeyBaseFromDir(cliCtx.Home)
+	if err != nil {
+		return nil, nil, err
+	}
+	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 0, 0.0, false, cliCtx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
 	if err := cliCtx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}
