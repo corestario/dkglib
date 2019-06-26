@@ -13,7 +13,7 @@ import (
 	cliCTX "dgamingfoundation/dkglib/lib/client/context"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
-	"github.com/dgamingfoundation/randapp/util"
+	app "github.com/dgamingfoundation/randapp"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	cliHome      = "/Users/pr0n00gler/.rcli" // TODO: get this from command line args
+	cliHome      = "/Users/pr0n00gler/.nftcli" // TODO: get this from command line args
 	nodeEndpoint = "tcp://localhost:26657"   // TODO: get this from command line args
 )
 
@@ -82,7 +82,7 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 	if err := initConfig(validatorName); err != nil {
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
-	cdc := util.MakeCodec()
+	cdc := app.MakeCodec()
 	cliCtx, err := cliCTX.NewCLIContext("NFTChain", "localhost:26657", validatorName, false, "", "", 0, false, false, "sync", false, false, false, false, cliHome)
 	if err != nil {
 		return nil, nil, err
