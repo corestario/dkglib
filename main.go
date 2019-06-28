@@ -30,9 +30,10 @@ const (
 	trustNode     = false
 	broadcastMode = "sync"
 	genOnly       = false
+	validatorName = "validator1"
 )
 
-var cliHome = "/Users/pr0n00gler/.nftcli" // TODO: get this from command line args
+var cliHome = "~/.rcli" // TODO: get this from command line args
 
 func init() {
 	usr, err := user.Current()
@@ -58,7 +59,7 @@ func main() {
 
 	wg := &sync.WaitGroup{}
 	for _, pval := range pvals {
-		cli, txBldr, err := getTools("validator1")
+		cli, txBldr, err := getTools(validatorName)
 		if err != nil {
 			fmt.Printf("failed to get a randapp client: %v", err)
 			os.Exit(1)
