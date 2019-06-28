@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"dgamingfoundation/dkglib/lib/client/context"
+	"github.com/cosmos/cosmos-sdk/client/context"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/rest"
@@ -40,7 +41,7 @@ func QueryTxsByTagsRequestHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec)
 		}
 
 		if len(r.Form) == 0 {
-			rest.PostProcessResponse(w, cdc, txs, cliCtx.Indent)
+			rest.PostProcessResponse(w, cliCtx, txs)
 			return
 		}
 
@@ -56,7 +57,7 @@ func QueryTxsByTagsRequestHandlerFn(cliCtx context.CLIContext, cdc *codec.Codec)
 			return
 		}
 
-		rest.PostProcessResponse(w, cdc, searchResult, cliCtx.Indent)
+		rest.PostProcessResponse(w, cliCtx, searchResult)
 	}
 }
 
@@ -81,6 +82,6 @@ func QueryTxRequestHandlerFn(cdc *codec.Codec, cliCtx context.CLIContext) http.H
 			rest.WriteErrorResponse(w, http.StatusNotFound, fmt.Sprintf("no transaction found with hash %s", hashHexStr))
 		}
 
-		rest.PostProcessResponse(w, cdc, output, cliCtx.Indent)
+		rest.PostProcessResponse(w, cliCtx, output)
 	}
 }

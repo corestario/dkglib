@@ -8,7 +8,7 @@ import (
 
 	ctypes "github.com/tendermint/tendermint/rpc/core/types"
 
-	"dgamingfoundation/dkglib/lib/client/context"
+	"github.com/cosmos/cosmos-sdk/client/context"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
