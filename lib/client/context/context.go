@@ -52,10 +52,11 @@ type CLIContext struct {
 	FromName      string
 	Indent        bool
 	SkipConfirm   bool
+	Home          string
 }
 
 // NewCLIContext returns a new initialized CLIContext
-func NewCLIContext(chainID string, nodeURI string, from string, genOnly bool, vfrHome string, outputFormat string, height int64, trustNode bool, useLedger bool, broadcastMode string, printResponse bool, simulate bool, indent bool, skipConfirm bool, home string) (CLIContext, error) {
+func NewCLIContext(chainID string, nodeURI string, from string, genOnly bool, broadcastMode string, vfrHome string, height int64, trustNode bool, home string) (CLIContext, error) {
 	var (
 		rpc rpcclient.Client
 		cli CLIContext
@@ -84,19 +85,14 @@ func NewCLIContext(chainID string, nodeURI string, from string, genOnly bool, vf
 		NodeURI:       nodeURI,
 		AccountStore:  auth.StoreKey,
 		From:          from,
-		OutputFormat:  outputFormat,
 		Height:        height,
 		TrustNode:     trustNode,
-		UseLedger:     useLedger,
-		BroadcastMode: broadcastMode,
-		PrintResponse: printResponse,
 		Verifier:      verifier,
-		Simulate:      simulate,
 		GenerateOnly:  genOnly,
 		FromAddress:   fromAddress,
 		FromName:      fromName,
-		Indent:        indent,
-		SkipConfirm:   skipConfirm,
+		Home:          home,
+		BroadcastMode: broadcastMode,
 	}
 	return cli, nil
 }
