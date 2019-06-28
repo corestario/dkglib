@@ -1,12 +1,12 @@
 package utils
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"dgamingfoundation/dkglib/lib/client/context"
+
+	"dgamingfoundation/dkglib/lib/client"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
@@ -63,27 +63,7 @@ func CompleteAndBroadcastTxCLI(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 		return nil
 	}
 
-	//if !cliCtx.SkipConfirm {
-	//	stdSignMsg, err := txBldr.BuildSignMsg(msgs)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	json := cliCtx.Codec.MustMarshalJSON(stdSignMsg)
-	//
-	//	buf := client.BufferStdin()
-	//	ok, err := client.GetConfirmation("confirm transaction before signing and broadcasting", buf)
-	//	if err != nil || !ok {
-	//		fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
-	//		return err
-	//	}
-	//}
-
-	//passphrase, err := keys.GetPassphrase(fromName, cliCtx)
-	//if err != nil {
-	//	return err
-	//}
-
-	passphrase := "12345678"
+	passphrase := client.DefaultKeyPass
 
 	// build and sign the transaction
 	txBytes, err := txBldr.BuildAndSign(fromName, passphrase, msgs)
@@ -153,104 +133,6 @@ func PrintUnsignedStdTx(
 	}
 
 	return
-}
-
-// SignStdTx appends a signature to a StdTx and returns a copy of it. If appendSig
-// is false, it replaces the signatures already attached with the new signature.
-// Don't perform online validation or lookups if offline is true.
-//func SignStdTx(
-//	txBldr authtxb.TxBuilder, cliCtx context.CLIContext, name string,
-//	stdTx auth.StdTx, appendSig bool, offline bool,
-//) (auth.StdTx, error) {
-//
-//	var signedStdTx auth.StdTx
-//
-//	info, err := txBldr.Keybase().Get(name)
-//	if err != nil {
-//		return signedStdTx, err
-//	}
-//
-//	addr := info.GetPubKey().Address()
-//
-//	// check whether the address is a signer
-//	if !isTxSigner(sdk.AccAddress(addr), stdTx.GetSigners()) {
-//		return signedStdTx, fmt.Errorf("%s: %s", client.ErrInvalidSigner, name)
-//	}
-//
-//	if !offline {
-//		txBldr, err = populateAccountFromState(txBldr, cliCtx, sdk.AccAddress(addr))
-//		if err != nil {
-//			return signedStdTx, err
-//		}
-//	}
-//
-//	passphrase, err := keys.GetPassphrase(name, cliCtx)
-//	if err != nil {
-//		return signedStdTx, err
-//	}
-//
-//	return txBldr.SignStdTx(name, passphrase, stdTx, appendSig)
-//}
-
-// SignStdTxWithSignerAddress attaches a signature to a StdTx and returns a copy of a it.
-// Don't perform online validation or lookups if offline is true, else
-// populate account and sequence numbers from a foreign account.
-//func SignStdTxWithSignerAddress(txBldr authtxb.TxBuilder, cliCtx context.CLIContext,
-//	addr sdk.AccAddress, name string, stdTx auth.StdTx,
-//	offline bool) (signedStdTx auth.StdTx, err error) {
-//
-//	// check whether the address is a signer
-//	if !isTxSigner(addr, stdTx.GetSigners()) {
-//		return signedStdTx, fmt.Errorf("%s: %s", client.ErrInvalidSigner, name)
-//	}
-//
-//	if !offline {
-//		txBldr, err = populateAccountFromState(txBldr, cliCtx, addr)
-//		if err != nil {
-//			return signedStdTx, err
-//		}
-//	}
-//
-//	passphrase, err := keys.GetPassphrase(name, cliCtx)
-//	if err != nil {
-//		return signedStdTx, err
-//	}
-//
-//	return txBldr.SignStdTx(name, passphrase, stdTx, false)
-//}
-
-// Read and decode a StdTx from the given filename.  Can pass "-" to read from stdin.
-func ReadStdTxFromFile(cdc *amino.Codec, filename string) (stdTx auth.StdTx, err error) {
-	var bytes []byte
-	if filename == "-" {
-		bytes, err = ioutil.ReadAll(os.Stdin)
-	} else {
-		bytes, err = ioutil.ReadFile(filename)
-	}
-	if err != nil {
-		return
-	}
-	if err = cdc.UnmarshalJSON(bytes, &stdTx); err != nil {
-		return
-	}
-	return
-}
-
-func populateAccountFromState(
-	txBldr authtxb.TxBuilder, cliCtx context.CLIContext, addr sdk.AccAddress,
-) (authtxb.TxBuilder, error) {
-
-	accNum, err := cliCtx.GetAccountNumber(addr)
-	if err != nil {
-		return txBldr, err
-	}
-
-	accSeq, err := cliCtx.GetAccountSequence(addr)
-	if err != nil {
-		return txBldr, err
-	}
-
-	return txBldr.WithAccountNumber(accNum).WithSequence(accSeq), nil
 }
 
 // GetTxEncoder return tx encoder from global sdk configuration if ones is defined.
@@ -342,14 +224,4 @@ func buildUnsignedStdTxOffline(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 	}
 
 	return auth.NewStdTx(stdSignMsg.Msgs, stdSignMsg.Fee, nil, stdSignMsg.Memo), nil
-}
-
-func isTxSigner(user sdk.AccAddress, signers []sdk.AccAddress) bool {
-	for _, s := range signers {
-		if bytes.Equal(user.Bytes(), s.Bytes()) {
-			return true
-		}
-	}
-
-	return false
 }
