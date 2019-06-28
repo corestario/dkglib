@@ -26,12 +26,10 @@ const (
 	nodeEndpoint  = "tcp://localhost:26657" // TODO: get this from command line args
 	chainID       = "rchain"
 	vfrHome       = ""
-	outputFormat  = ""
-	height        = ""
+	height        = 0
 	trustNode     = false
-	useLedger     = ""
 	broadcastMode = "sync"
-	printResponse = false
+	genOnly       = false
 )
 
 var cliHome = "/Users/pr0n00gler/.nftcli" // TODO: get this from command line args
@@ -103,7 +101,7 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
 	cdc := app.MakeCodec()
-	cliCtx, err := cliCTX.NewCLIContext(chainID, nodeEndpoint, validatorName, false, "sync", "", 0, false, cliHome)
+	cliCtx, err := cliCTX.NewCLIContext(chainID, nodeEndpoint, validatorName, genOnly, broadcastMode, vfrHome, height, trustNode, cliHome)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -124,7 +122,7 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 	return &cliCtx, &txBldr, nil
 }
 
-func initConfig(validatorName string) error {
+func initConfig(_ string) error {
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
