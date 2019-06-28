@@ -8,9 +8,10 @@ require (
 	github.com/cosmos/cosmos-sdk v0.35.0
 	github.com/cosmos/go-bip39 v0.0.0-20180618194314-52158e4697b8
 	github.com/cosmos/sdk-application-tutorial v0.0.0-20190624153636-5544cb2b56cc // indirect
-	github.com/dgamingfoundation/randapp v0.0.0-00010101000000-000000000000
+	github.com/dgamingfoundation/randapp v0.0.0-20190628131059-530455b10c7e
 	github.com/gorilla/mux v1.7.0
 	github.com/mattn/go-isatty v0.0.7
+	github.com/mattn/go-runewidth v0.0.4 // indirect
 	github.com/olekukonko/tablewriter v0.0.1
 	github.com/pelletier/go-toml v1.2.0
 	github.com/pkg/errors v0.8.1
@@ -22,10 +23,8 @@ require (
 	google.golang.org/appengine v1.4.0 // indirect
 )
 
-replace github.com/dgamingfoundation/randapp => /Users/pr0n00gler/go/src/github.com/dgamingfoundation/randapp
+replace github.com/cosmos/cosmos-sdk => github.com/cosmos/cosmos-sdk v0.28.2-0.20190616100639-18415eedaf25
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 
-replace github.com/tendermint/tendermint => /Users/pr0n00gler/go/src/github.com/tendermint/tendermint
-
-replace github.com/cosmos/cosmos-sdk => /Users/pr0n00gler/go/src/github.com/cosmos/cosmos-sdk
+replace github.com/tendermint/tendermint => github.com/dgamingfoundation/tendermint v0.27.4-0.20190604195457-d66632d1761e

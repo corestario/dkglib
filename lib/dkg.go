@@ -6,9 +6,10 @@ import (
 	"fmt"
 
 	"dgamingfoundation/dkglib/lib/client/context"
+	authtxb "dgamingfoundation/dkglib/lib/client/txbuilder"
 	utils "dgamingfoundation/dkglib/lib/client/utils"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	"github.com/dgamingfoundation/randapp/x/randapp"
 	"github.com/tendermint/tendermint/consensus"
 	"github.com/tendermint/tendermint/libs/events"

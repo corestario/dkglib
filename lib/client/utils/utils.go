@@ -7,14 +7,16 @@ import (
 	"os"
 
 	"dgamingfoundation/dkglib/lib/client/context"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/common"
 
+	authtxb "dgamingfoundation/dkglib/lib/client/txbuilder"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 )
 
 // GasEstimateResponse defines a response definition for tx gas estimation.
