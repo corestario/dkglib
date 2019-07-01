@@ -53,10 +53,11 @@ type CLIContext struct {
 	Indent        bool
 	SkipConfirm   bool
 	Home          string
+	Passphrase    string
 }
 
 // NewCLIContext returns a new initialized CLIContext
-func NewCLIContext(chainID string, nodeURI string, from string, genOnly bool, broadcastMode string, vfrHome string, height int64, trustNode bool, home string) (CLIContext, error) {
+func NewCLIContext(chainID string, nodeURI string, from string, genOnly bool, broadcastMode string, vfrHome string, height int64, trustNode bool, home string, passphrase string) (CLIContext, error) {
 	var (
 		rpc rpcclient.Client
 		cli CLIContext
@@ -93,6 +94,7 @@ func NewCLIContext(chainID string, nodeURI string, from string, genOnly bool, br
 		FromName:      fromName,
 		Home:          home,
 		BroadcastMode: broadcastMode,
+		Passphrase:    passphrase,
 	}
 	return cli, nil
 }
@@ -192,6 +194,12 @@ func (ctx CLIContext) WithClient(client rpcclient.Client) CLIContext {
 // WithUseLedger returns a copy of the context with an updated UseLedger flag.
 func (ctx CLIContext) WithUseLedger(useLedger bool) CLIContext {
 	ctx.UseLedger = useLedger
+	return ctx
+}
+
+// WithPassphrase returns a copy of the context with an passphrase for signing tx.
+func (ctx CLIContext) WithPassphrase(passphrase string) CLIContext {
+	ctx.Passphrase = passphrase
 	return ctx
 }
 

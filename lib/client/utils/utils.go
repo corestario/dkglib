@@ -65,6 +65,10 @@ func CompleteAndBroadcastTxCLI(txBldr authtxb.TxBuilder, cliCtx context.CLIConte
 
 	passphrase := client.DefaultKeyPass
 
+	if cliCtx.Passphrase != "" {
+		passphrase = cliCtx.Passphrase
+	}
+
 	// build and sign the transaction
 	txBytes, err := txBldr.BuildAndSign(fromName, passphrase, msgs)
 	if err != nil {

@@ -102,7 +102,7 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
 	cdc := app.MakeCodec()
-	cliCtx, err := cliCTX.NewCLIContext(chainID, nodeEndpoint, validatorName, genOnly, broadcastMode, vfrHome, height, trustNode, cliHome)
+	cliCtx, err := cliCTX.NewCLIContext(chainID, nodeEndpoint, validatorName, genOnly, broadcastMode, vfrHome, height, trustNode, cliHome, "")
 	if err != nil {
 		return nil, nil, err
 	}
