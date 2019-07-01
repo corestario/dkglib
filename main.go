@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -30,7 +31,7 @@ const (
 	trustNode     = false
 	broadcastMode = "sync"
 	genOnly       = false
-	validatorName = "validator1"
+	validatorName = "validator"
 )
 
 var cliHome = "~/.rcli" // TODO: get this from command line args
@@ -51,15 +52,19 @@ func main() {
 		vals   []*types.Validator
 		pvals  []types.PrivValidator
 	)
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 4; i++ {
 		v, pv := getValidatorEnv()
 		vals, pvals = append(vals, v), append(pvals, pv)
 
 	}
 
+	var MPV types.PrivValidator
+	var OC *lib.OnChainDKG
+	var mu sync.Mutex
+	MP := make(map[types.PrivValidator]lib.OnChainDKG)
 	wg := &sync.WaitGroup{}
-	for _, pval := range pvals {
-		cli, txBldr, err := getTools(validatorName)
+	for k, pval := range pvals {
+		cli, txBldr, err := getTools(strconv.Itoa(k))
 		if err != nil {
 			fmt.Printf("failed to get a randapp client: %v", err)
 			os.Exit(1)
@@ -67,13 +72,19 @@ func main() {
 
 		wg.Add(1)
 
+		oc := lib.NewOnChainDKG(cli, txBldr)
+		pv := pval
+		mu.Lock()
+		MP[pv] = *oc
+		mu.Unlock()
 		go func(pval types.PrivValidator) {
 			oc := lib.NewOnChainDKG(cli, txBldr)
 			if err := oc.StartRound(types.NewValidatorSet(vals), pval, mockF, logger, 0); err != nil {
 				panic(fmt.Sprintf("failed to start round: %v", err))
 			}
-
-			tk := time.NewTicker(time.Second)
+			OC = oc
+			MPV = pval
+			tk := time.NewTicker(time.Millisecond * 2000)
 			for {
 				select {
 				case <-tk.C:
@@ -87,6 +98,20 @@ func main() {
 			}
 		}(pval)
 	}
+	tick := time.NewTicker(time.Second * 20)
+	for {
+		func() {
+			<-tick.C
+			mu.Lock()
+			defer mu.Unlock()
+			for k, v := range MP {
+				go v.StartRound(types.NewValidatorSet(vals), k, mockF, logger, 0)
+			}
+			//if err := OC.StartRound(types.NewValidatorSet(vals), MPV, mockF, logger, 0); err != nil {
+			//	panic(fmt.Sprintf("failed to start round: %v", err))
+			//}
+		}()
+	}
 
 	wg.Wait()
 	fmt.Println("All instances finished DKG, O.K.")
@@ -97,12 +122,12 @@ func getValidatorEnv() (*types.Validator, types.PrivValidator) {
 	return types.NewValidator(pv.GetPubKey(), 1), pv
 }
 
-func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, error) {
-	if err := initConfig(validatorName); err != nil {
-		return nil, nil, fmt.Errorf("could not read config: %v", err)
-	}
+func getTools(vName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, error) {
+	//if err := initConfig(validatorName); err != nil {
+	//	return nil, nil, fmt.Errorf("could not read config: %v", err)
+	//}
 	cdc := app.MakeCodec()
-	cliCtx, err := cliCTX.NewCLIContext(chainID, nodeEndpoint, validatorName, genOnly, broadcastMode, vfrHome, height, trustNode, cliHome)
+	cliCtx, err := cliCTX.NewCLIContext(chainID, nodeEndpoint, validatorName+vName, genOnly, broadcastMode, vfrHome, height, trustNode, cliHome+vName)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -115,7 +140,7 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 	if err != nil {
 		return nil, nil, err
 	}
-	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 0, 0.0, false, cliCtx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
+	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 40000000, 0.0, false, cliCtx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
 	if err := cliCtx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}

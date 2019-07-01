@@ -73,7 +73,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 	}
 
 	if _, err := m.dealer.GetVerifier(); err == consensus.ErrDKGVerifierNotReady {
-		return nil, true
+		return nil, false
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
 	}
