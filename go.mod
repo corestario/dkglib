@@ -27,4 +27,4 @@ replace github.com/cosmos/cosmos-sdk => github.com/cosmos/cosmos-sdk v0.28.2-0.2
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 
-replace github.com/tendermint/tendermint => github.com/dgamingfoundation/tendermint v0.27.4-0.20190604195457-d66632d1761e
+replace github.com/tendermint/tendermint => github.com/dgamingfoundation/tendermint v0.27.4-0.20190703120825-5513e8769220
