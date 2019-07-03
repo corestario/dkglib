@@ -58,8 +58,6 @@ func main() {
 
 	}
 
-	var MPV types.PrivValidator
-	var OC *lib.OnChainDKG
 	var mu sync.Mutex
 	MP := make(map[types.PrivValidator]lib.OnChainDKG)
 	wg := &sync.WaitGroup{}
@@ -78,13 +76,11 @@ func main() {
 		MP[pv] = *oc
 		mu.Unlock()
 		go func(pval types.PrivValidator) {
-			oc := lib.NewOnChainDKG(cli, txBldr)
+			//oc := lib.NewOnChainDKG(cli, txBldr)
 			if err := oc.StartRound(types.NewValidatorSet(vals), pval, mockF, logger, 0); err != nil {
 				panic(fmt.Sprintf("failed to start round: %v", err))
 			}
-			OC = oc
-			MPV = pval
-			tk := time.NewTicker(time.Millisecond * 2000)
+			tk := time.NewTicker(time.Millisecond * 3000)
 			for {
 				select {
 				case <-tk.C:
@@ -97,20 +93,6 @@ func main() {
 				}
 			}
 		}(pval)
-	}
-	tick := time.NewTicker(time.Second * 20)
-	for {
-		func() {
-			<-tick.C
-			mu.Lock()
-			defer mu.Unlock()
-			for k, v := range MP {
-				go v.StartRound(types.NewValidatorSet(vals), k, mockF, logger, 0)
-			}
-			//if err := OC.StartRound(types.NewValidatorSet(vals), MPV, mockF, logger, 0); err != nil {
-			//	panic(fmt.Sprintf("failed to start round: %v", err))
-			//}
-		}()
 	}
 
 	wg.Wait()
@@ -140,7 +122,8 @@ func getTools(vName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 40000000, 0.0, false, cliCtx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
+
+	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 40000000000, 1.0, false, cliCtx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
 	if err := cliCtx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}

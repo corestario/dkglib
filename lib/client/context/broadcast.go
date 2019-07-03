@@ -2,7 +2,6 @@ package context
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -16,7 +15,6 @@ func (ctx CLIContext) BroadcastTx(txBytes []byte) (res sdk.TxResponse, err error
 	switch ctx.BroadcastMode {
 	case client.BroadcastSync:
 		res, err = ctx.BroadcastTxSync(txBytes)
-		log.Println(res, err)
 	case client.BroadcastAsync:
 		res, err = ctx.BroadcastTxAsync(txBytes)
 

@@ -101,7 +101,11 @@ func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
 		return err
 	}
 
-	return utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
+	err := utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
+	if err == nil {
+		*m.txBldr = m.txBldr.WithSequence(m.txBldr.Sequence() + 1)
+	}
+	return err
 }
 
 func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*types.DKGData, error) {

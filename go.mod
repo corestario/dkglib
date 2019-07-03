@@ -8,7 +8,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.35.0
 	github.com/cosmos/go-bip39 v0.0.0-20180618194314-52158e4697b8
 	github.com/cosmos/sdk-application-tutorial v0.0.0-20190624153636-5544cb2b56cc // indirect
-	github.com/dgamingfoundation/randapp v0.0.0-20190628131059-530455b10c7e
+	github.com/dgamingfoundation/randapp v0.0.0-20190701100104-b2f0fa470065
 	github.com/gorilla/mux v1.7.0
 	github.com/mattn/go-isatty v0.0.7
 	github.com/mattn/go-runewidth v0.0.4 // indirect
@@ -27,4 +27,4 @@ replace github.com/cosmos/cosmos-sdk => github.com/cosmos/cosmos-sdk v0.28.2-0.2
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 
-replace github.com/tendermint/tendermint => github.com/dgamingfoundation/tendermint v0.27.4-0.20190624123441-28dd49477e0b
+replace github.com/tendermint/tendermint => github.com/dgamingfoundation/tendermint v0.27.4-0.20190604195457-d66632d1761e
