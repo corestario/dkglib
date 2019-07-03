@@ -98,20 +98,24 @@ func (m *OnChainDKG) StartRound(
 }
 
 func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
+	defer func() {
+		//*m.txBldr = m.txBldr.WithSequence(m.txBldr.Sequence() + 1)
+	}()
+
 	msg := randapp.NewMsgSendDKGData(data, m.cli.GetFromAddress(), m.validatorsCount)
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
 
 	err := utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
-	if err == nil {
-		*m.txBldr = m.txBldr.WithSequence(m.txBldr.Sequence() + 1)
-	}
+	//if err == nil {
+	*m.txBldr = m.txBldr.WithSequence(m.txBldr.Sequence() + 1)
+	//}
 	return err
 }
 
 func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*types.DKGData, error) {
-	res, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
+	res, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d/%d", dataType, m.dealer.GetState().GetRoundID()), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
 	}
