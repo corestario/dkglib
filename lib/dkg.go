@@ -88,7 +88,7 @@ func (m *OnChainDKG) StartRound(
 	eventFirer events.Fireable,
 	logger log.Logger,
 	startRound uint64) error {
-	m.dealer = consensus.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger)
+	m.dealer = consensus.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
 	m.validatorsCount = validators.Size()
 	if err := m.dealer.Start(); err != nil {
 		return fmt.Errorf("failed to start dealer: %v", err)
