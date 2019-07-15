@@ -4,7 +4,7 @@ Implements on-chain logic of DKG protocol described in "Secure Distributed Key G
 
 ### How it works
 
-Library communicates with Cosmos Application called [RandApp](github.com/dgamingfoundation/randapp)
+Library communicates with Cosmos Application called [RandApp](https://github.com/dgamingfoundation/randapp)
 
 Transactions sent by light blockchain client (copy of Cosmos CliContext and TxBuilder but with explicit configuration)
 
