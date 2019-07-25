@@ -1,4 +1,4 @@
-module dgamingfoundation/dkglib
+module github.com/dgamingfoundation/dkglib
 
 go 1.12
 
