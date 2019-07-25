@@ -8,7 +8,7 @@ require (
 	github.com/cosmos/cosmos-sdk v0.35.0
 	github.com/cosmos/go-bip39 v0.0.0-20180618194314-52158e4697b8
 	github.com/cosmos/sdk-application-tutorial v0.0.0-20190624153636-5544cb2b56cc // indirect
-	github.com/dgamingfoundation/randapp v0.0.0-20190628131059-530455b10c7e
+	github.com/dgamingfoundation/randapp v0.0.0-20190701100104-b2f0fa470065 // indirect
 	github.com/gorilla/mux v1.7.0
 	github.com/mattn/go-isatty v0.0.7
 	github.com/mattn/go-runewidth v0.0.4 // indirect
