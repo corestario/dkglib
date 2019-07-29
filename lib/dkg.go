@@ -5,9 +5,9 @@ import (
 	"encoding/gob"
 	"fmt"
 
-	"dgamingfoundation/dkglib/lib/client/context"
-	authtxb "dgamingfoundation/dkglib/lib/client/txbuilder"
-	utils "dgamingfoundation/dkglib/lib/client/utils"
+	"github.com/dgamingfoundation/dkglib/lib/client/context"
+	authtxb "github.com/dgamingfoundation/dkglib/lib/client/txbuilder"
+	utils "github.com/dgamingfoundation/dkglib/lib/client/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/dgamingfoundation/randapp/x/randapp"

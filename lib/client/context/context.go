@@ -9,10 +9,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"dgamingfoundation/dkglib/lib/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	cryptokeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/dgamingfoundation/dkglib/lib/client/keys"
 
 	"github.com/tendermint/tendermint/libs/log"
 	tmlite "github.com/tendermint/tendermint/lite"

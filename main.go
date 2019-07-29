@@ -1,18 +1,18 @@
 package main
 
 import (
-	"dgamingfoundation/dkglib/lib"
-	"dgamingfoundation/dkglib/lib/client/keys"
-	"dgamingfoundation/dkglib/lib/client/utils"
 	"fmt"
+	"github.com/dgamingfoundation/dkglib/lib"
+	"github.com/dgamingfoundation/dkglib/lib/client/keys"
+	"github.com/dgamingfoundation/dkglib/lib/client/utils"
 	"os"
 	"os/user"
 	"path"
 	"sync"
 	"time"
 
-	cliCTX "dgamingfoundation/dkglib/lib/client/context"
-	authtxb "dgamingfoundation/dkglib/lib/client/txbuilder"
+	cliCTX "github.com/dgamingfoundation/dkglib/lib/client/context"
+	authtxb "github.com/dgamingfoundation/dkglib/lib/client/txbuilder"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	app "github.com/dgamingfoundation/randapp"

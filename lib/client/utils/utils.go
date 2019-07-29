@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	"dgamingfoundation/dkglib/lib/client/context"
+	"github.com/dgamingfoundation/dkglib/lib/client/context"
 
-	"dgamingfoundation/dkglib/lib/client"
+	"github.com/dgamingfoundation/dkglib/lib/client"
 
 	"github.com/cosmos/cosmos-sdk/codec"
 
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/libs/common"
 
-	authtxb "dgamingfoundation/dkglib/lib/client/txbuilder"
+	authtxb "github.com/dgamingfoundation/dkglib/lib/client/txbuilder"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
