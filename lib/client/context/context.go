@@ -153,6 +153,12 @@ func (ctx CLIContext) WithAccountDecoder(cdc *codec.Codec) CLIContext {
 	return ctx
 }
 
+// WithHeight returns a copy of the context with an updated height.
+func (ctx CLIContext) WithHeight(height int64) CLIContext {
+	ctx.Height = height
+	return ctx
+}
+
 // WithOutput returns a copy of the context with an updated output writer (e.g. stdout).
 func (ctx CLIContext) WithOutput(w io.Writer) CLIContext {
 	ctx.Output = w

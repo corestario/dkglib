@@ -105,7 +105,7 @@ func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
 }
 
 func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*types.DKGData, error) {
-	res, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
+	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
 	}
