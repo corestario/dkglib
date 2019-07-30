@@ -12,9 +12,9 @@ import (
 	"time"
 
 	cliCTX "github.com/dgamingfoundation/dkglib/lib/client/context"
-	authtxb "github.com/dgamingfoundation/dkglib/lib/client/txbuilder"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	app "github.com/dgamingfoundation/randapp"
 	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/events"
@@ -97,7 +97,7 @@ func getValidatorEnv() (*types.Validator, types.PrivValidator) {
 	return types.NewValidator(pv.GetPubKey(), 1), pv
 }
 
-func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, error) {
+func getTools(validatorName string) (*cliCTX.CLIContext, *authtypes.TxBuilder, error) {
 	if err := initConfig(validatorName); err != nil {
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
@@ -106,16 +106,13 @@ func getTools(validatorName string) (*cliCTX.CLIContext, *authtxb.TxBuilder, err
 	if err != nil {
 		return nil, nil, err
 	}
-	cliCtx = cliCtx.WithCodec(cdc).WithAccountDecoder(cdc)
-	accNumber, err := cliCtx.GetAccountNumber(cliCtx.FromAddress)
-	if err != nil {
-		return nil, nil, err
-	}
+	baseAccount := authtypes.NewBaseAccountWithAddress(cliCtx.FromAddress)
+	accNumber := baseAccount.GetAccountNumber()
 	kb, err := keys.NewKeyBaseFromDir(cliCtx.Home)
 	if err != nil {
 		return nil, nil, err
 	}
-	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 0, 0.0, false, cliCtx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
+	txBldr := authtypes.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 0, 0.0, false, cliCtx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
 	if err := cliCtx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}

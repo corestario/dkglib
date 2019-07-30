@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	"github.com/dgamingfoundation/dkglib/lib/client/context"
-	authtxb "github.com/dgamingfoundation/dkglib/lib/client/txbuilder"
 	utils "github.com/dgamingfoundation/dkglib/lib/client/utils"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/dgamingfoundation/randapp/x/randapp"
 	"github.com/tendermint/tendermint/consensus"
 	"github.com/tendermint/tendermint/libs/events"
@@ -19,11 +19,11 @@ import (
 
 type OnChainDKG struct {
 	cli    *context.CLIContext
-	txBldr *authtxb.TxBuilder
+	txBldr *authtypes.TxBuilder
 	dealer consensus.Dealer
 }
 
-func NewOnChainDKG(cli *context.CLIContext, txBldr *authtxb.TxBuilder) *OnChainDKG {
+func NewOnChainDKG(cli *context.CLIContext, txBldr *authtypes.TxBuilder) *OnChainDKG {
 	return &OnChainDKG{
 		cli:    cli,
 		txBldr: txBldr,

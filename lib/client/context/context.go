@@ -30,8 +30,8 @@ var (
 // CLIContext implements a typical CLI context created in SDK modules for
 // transaction handling and queries.
 type CLIContext struct {
-	Codec         *codec.Codec
-	AccDecoder    auth.AccountDecoder
+	Codec *codec.Codec
+	//AccDecoder    auth.AccountDecoder
 	Client        rpcclient.Client
 	Keybase       cryptokeys.Keybase
 	Output        io.Writer
@@ -135,23 +135,23 @@ func (ctx CLIContext) WithCodec(cdc *codec.Codec) CLIContext {
 }
 
 // GetAccountDecoder gets the account decoder for auth.DefaultAccount.
-func GetAccountDecoder(cdc *codec.Codec) auth.AccountDecoder {
-	return func(accBytes []byte) (acct auth.Account, err error) {
-		err = cdc.UnmarshalBinaryBare(accBytes, &acct)
-		if err != nil {
-			panic(err)
-		}
-
-		return acct, err
-	}
-}
+//func GetAccountDecoder(cdc *codec.Codec) auth.AccountDecoder {
+//	return func(accBytes []byte) (acct auth.Account, err error) {
+//		err = cdc.UnmarshalBinaryBare(accBytes, &acct)
+//		if err != nil {
+//			panic(err)
+//		}
+//
+//		return acct, err
+//	}
+//}
 
 // WithAccountDecoder returns a copy of the context with an updated account
 // decoder.
-func (ctx CLIContext) WithAccountDecoder(cdc *codec.Codec) CLIContext {
-	ctx.AccDecoder = GetAccountDecoder(cdc)
-	return ctx
-}
+//func (ctx CLIContext) WithAccountDecoder(cdc *codec.Codec) CLIContext {
+//	ctx.AccDecoder = GetAccountDecoder(cdc)
+//	return ctx
+//}
 
 // WithHeight returns a copy of the context with an updated height.
 func (ctx CLIContext) WithHeight(height int64) CLIContext {

@@ -5,6 +5,7 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
+	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/pkg/errors"
 
@@ -61,23 +62,23 @@ func (ctx CLIContext) QuerySubspace(subspace []byte, storeName string) (res []sd
 
 // GetAccount queries for an account given an address and a block height. An
 // error is returned if the query or decoding fails.
-func (ctx CLIContext) GetAccount(address []byte) (auth.Account, error) {
-	if ctx.AccDecoder == nil {
-		return nil, errors.New("account decoder required but not provided")
-	}
-
-	res, err := ctx.queryAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	var account auth.Account
-	if err := ctx.Codec.UnmarshalJSON(res, &account); err != nil {
-		return nil, err
-	}
-
-	return account, nil
-}
+//func (ctx CLIContext) GetAccount(address []byte) (auth.Account, error) {
+//	if ctx.AccDecoder == nil {
+//		return nil, errors.New("account decoder required but not provided")
+//	}
+//
+//	res, err := ctx.queryAccount(address)
+//	if err != nil {
+//		return nil, err
+//	}
+//
+//	var account auth.Account
+//	if err := ctx.Codec.UnmarshalJSON(res, &account); err != nil {
+//		return nil, err
+//	}
+//
+//	return account, nil
+//}
 
 // GetFromAddress returns the from address from the context's name.
 func (ctx CLIContext) GetFromAddress() sdk.AccAddress {
@@ -91,25 +92,25 @@ func (ctx CLIContext) GetFromName() string {
 
 // GetAccountNumber returns the next account number for the given account
 // address.
-func (ctx CLIContext) GetAccountNumber(address []byte) (uint64, error) {
-	account, err := ctx.GetAccount(address)
-	if err != nil {
-		return 0, err
-	}
-
-	return account.GetAccountNumber(), nil
-}
-
-// GetAccountSequence returns the sequence number for the given account
-// address.
-func (ctx CLIContext) GetAccountSequence(address []byte) (uint64, error) {
-	account, err := ctx.GetAccount(address)
-	if err != nil {
-		return 0, err
-	}
-
-	return account.GetSequence(), nil
-}
+//func (ctx CLIContext) GetAccountNumber(address []byte) (uint64, error) {
+//	account, err := ctx.GetAccount(address)
+//	if err != nil {
+//		return 0, err
+//	}
+//
+//	return account.GetAccountNumber(), nil
+//}
+//
+//// GetAccountSequence returns the sequence number for the given account
+//// address.
+//func (ctx CLIContext) GetAccountSequence(address []byte) (uint64, error) {
+//	account, err := ctx.GetAccount(address)
+//	if err != nil {
+//		return 0, err
+//	}
+//
+//	return account.GetSequence(), nil
+//}
 
 // EnsureAccountExists ensures that an account exists for a given context. An
 // error is returned if it does not.
@@ -129,7 +130,7 @@ func (ctx CLIContext) EnsureAccountExistsFromAddr(addr sdk.AccAddress) error {
 // queryAccount queries an account using custom query endpoint of auth module
 // returns an error if result is `null` otherwise account data
 func (ctx CLIContext) queryAccount(addr sdk.AccAddress) ([]byte, error) {
-	bz, err := ctx.Codec.MarshalJSON(auth.NewQueryAccountParams(addr))
+	bz, err := ctx.Codec.MarshalJSON(authTypes.NewQueryAccountParams(addr))
 	if err != nil {
 		return nil, err
 	}
