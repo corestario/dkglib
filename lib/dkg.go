@@ -5,10 +5,10 @@ import (
 	"encoding/gob"
 	"fmt"
 
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/utils"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
+	"github.com/dgamingfoundation/cosmos-utils/client/context"
+	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/randapp/x/randapp"
 	"github.com/tendermint/tendermint/consensus"
 	"github.com/tendermint/tendermint/libs/events"
@@ -17,12 +17,12 @@ import (
 )
 
 type OnChainDKG struct {
-	cli    *context.CLIContext
+	cli    *context.Context
 	txBldr *authtxb.TxBuilder
 	dealer consensus.Dealer
 }
 
-func NewOnChainDKG(cli *context.CLIContext, txBldr *authtxb.TxBuilder) *OnChainDKG {
+func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG {
 	return &OnChainDKG{
 		cli:    cli,
 		txBldr: txBldr,
@@ -71,7 +71,8 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 		}
 	}
 
-	if _, err := m.dealer.GetVerifier(); err == consensus.ErrDKGVerifierNotReady {
+	//TODO: make ErrDKGVerifierNotReady public in tendermint!
+	if _, err := m.dealer.GetVerifier(); err != nil { //err == consensus.ErrDKGVerifierNotReady {
 		return nil, true
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
@@ -86,7 +87,7 @@ func (m *OnChainDKG) StartRound(
 	eventFirer events.Fireable,
 	logger log.Logger,
 	startRound uint64) error {
-	m.dealer = consensus.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger)
+	m.dealer = consensus.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
 	if err := m.dealer.Start(); err != nil {
 		return fmt.Errorf("failed to start dealer: %v", err)
 	}
@@ -104,7 +105,7 @@ func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
 }
 
 func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*types.DKGData, error) {
-	res, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
+	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
 	}

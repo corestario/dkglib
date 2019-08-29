@@ -1,29 +1,42 @@
 package main
 
 import (
-	"dgamingfoundation/dkglib/lib"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/dgamingfoundation/cosmos-utils/client/context"
+	"github.com/dgamingfoundation/dkglib/lib"
+	"github.com/spf13/viper"
 	"os"
+	"os/user"
 	"path"
 	"sync"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/utils"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
+	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
+	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/randapp/util"
-	"github.com/spf13/viper"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
-	cliHome      = "/Users/andrei/.rcli"   // TODO: get this from command line args
-	nodeEndpoint = "tcp://localhost:26657" // TODO: get this from command line args
+	nodeEndpoint  = "tcp://localhost:26657" // TODO: get this from command line args
+	chainID       = "rchain"
 )
+
+var cliHome = "~/.rcli" // TODO: get this from command line args
+
+func init() {
+	usr, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+
+	cliHome = usr.HomeDir + "/" + ".rcli"
+}
 
 func main() {
 	var (
@@ -78,24 +91,30 @@ func getValidatorEnv() (*types.Validator, types.PrivValidator) {
 	return types.NewValidator(pv.GetPubKey(), 1), pv
 }
 
-func getTools(validatorName string) (*context.CLIContext, *authtxb.TxBuilder, error) {
+func getTools(validatorName string) (*context.Context, *authtxb.TxBuilder, error) {
 	if err := initConfig(validatorName); err != nil {
 		return nil, nil, fmt.Errorf("could not read config: %v", err)
 	}
 	cdc := util.MakeCodec()
-	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-	if err := cliCtx.EnsureAccountExists(); err != nil {
+	ctx, err := context.NewContext(chainID, nodeEndpoint, cliHome)
+	if err != nil {
+		return nil, nil, err
+	}
+	baseAccount := authtxb.NewBaseAccountWithAddress(ctx.FromAddress)
+	accNumber := baseAccount.GetAccountNumber()
+	kb, err := keys.NewKeyBaseFromDir(ctx.Home)
+	if err != nil {
+		return nil, nil, err
+	}
+	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 0, 0.0, false, ctx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
+	if err := ctx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}
 
-	return &cliCtx, &txBldr, nil
+	return &ctx, &txBldr, nil
 }
 
-func initConfig(validatorName string) error {
-	viper.Set(client.FlagNode, nodeEndpoint)
-	viper.Set(client.FlagFrom, validatorName)
-	viper.Set("home", "/Users/andrei/.rd")
+func initConfig(_ string) error {
 	config := sdk.GetConfig()
 	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
 	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
