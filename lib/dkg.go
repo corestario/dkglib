@@ -71,8 +71,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 		}
 	}
 
-	//TODO: make ErrDKGVerifierNotReady public in tendermint!
-	if _, err := m.dealer.GetVerifier(); err != nil { //err == consensus.ErrDKGVerifierNotReady {
+	if _, err := m.dealer.GetVerifier(); err == consensus.ErrDKGVerifierNotReady {
 		return nil, true
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
@@ -86,7 +85,7 @@ func (m *OnChainDKG) StartRound(
 	pv types.PrivValidator,
 	eventFirer events.Fireable,
 	logger log.Logger,
-	startRound uint64) error {
+	startRound int) error {
 	m.dealer = consensus.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
 	if err := m.dealer.Start(); err != nil {
 		return fmt.Errorf("failed to start dealer: %v", err)
