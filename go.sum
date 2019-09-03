@@ -66,8 +66,12 @@ github.com/dgamingfoundation/randapp v0.0.0-20190902110800-b61a6653839c/go.mod h
 github.com/dgamingfoundation/tendermint v0.27.0-rc1.0.20190830145446-2b64dd776342 h1:CZgS85CapiRKx9N3AegB0o1S0CsLH5SzK5T0v0HG97Y=
 github.com/dgamingfoundation/tendermint v0.27.0-rc1.0.20190830145446-2b64dd776342/go.mod h1:AnKVWL07Qx+HxiMAXuzQsQAocP6YBTh9pjzoJq0y+gY=
 github.com/dgamingfoundation/tendermint v0.27.3 h1:cWWZIbvk0sATF3v55e0RaWkvIoRdr0bDiraFP3+kxMc=
+github.com/dgamingfoundation/tendermint v0.27.4-0.20190902075848-ce9fbae9b910 h1:Os5Cpv4Zzcf4ynV2Z0Dq092fMo07sQn4gUI8WHcmFrI=
+github.com/dgamingfoundation/tendermint v0.27.4-0.20190902075848-ce9fbae9b910/go.mod h1:b7p6qPp7U4hGpm/zq8iwfQtPcCH2uXYVCQ4I7dt5xoE=
 github.com/dgamingfoundation/tendermint v0.27.4-0.20190902094534-08483d4fbeb7 h1:peSbCiBsA9CYVNE3MriGGWpvg+2LGeJZbEbxwOwp43s=
 github.com/dgamingfoundation/tendermint v0.27.4-0.20190902094534-08483d4fbeb7/go.mod h1:peEN/IH1LX93CBQhxsHEt2VLGKGC+ZvIwY7mEF3ERs0=
+github.com/dgamingfoundation/tendermint v0.27.4-0.20190903150100-ed2046ea5245 h1:Mxw3V5DDUWmbWWKGptmJMziXKtglEUaG0SSZJ8bC30I=
+github.com/dgamingfoundation/tendermint v0.27.4-0.20190903150100-ed2046ea5245/go.mod h1:peEN/IH1LX93CBQhxsHEt2VLGKGC+ZvIwY7mEF3ERs0=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8PWV+bWy6jNmig1y/TA+kYO4g3RSRF0IAv0no=
 github.com/etcd-io/bbolt v1.3.3 h1:gSJmxrs37LgTqR/oyJBWok6k6SvXEUerFTbltIhXkBM=
