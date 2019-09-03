@@ -25,6 +25,8 @@ import (
 const (
 	nodeEndpoint  = "tcp://localhost:26657" // TODO: get this from command line args
 	chainID       = "rchain"
+	validatorName = "validator0"
+	passphrase    = "12345678"
 )
 
 var cliHome = "~/.rcli" // TODO: get this from command line args
@@ -100,6 +102,13 @@ func getTools(validatorName string) (*context.Context, *authtxb.TxBuilder, error
 	if err != nil {
 		return nil, nil, err
 	}
+	ctx = ctx.WithCodec(cdc)
+	addr, _, err := context.GetFromFields(validatorName, cliHome)
+	if err != nil {
+		return nil, nil, err
+	}
+	ctx = ctx.WithFrom(validatorName).WithPassphrase(passphrase).WithFromAddress(addr)
+
 	baseAccount := authtxb.NewBaseAccountWithAddress(ctx.FromAddress)
 	accNumber := baseAccount.GetAccountNumber()
 	kb, err := keys.NewKeyBaseFromDir(ctx.Home)
