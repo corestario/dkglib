@@ -57,6 +57,12 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190829124036-5189e32ac7d3 h1:i54M28sXoisRShbWsSFmNq+61vgbWBSwymldvYarEqo=
 github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190829124036-5189e32ac7d3/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903171225-8d3cba387d62 h1:CC22h61DMcCazXOF7w6mBXfREZkNlSOKQZlFjKPWHaM=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903171225-8d3cba387d62/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903183604-70a2cb243289 h1:v3sLezseIuLIIcPWGqM+DiqxF94FRXkvBs1UahoddrU=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903183604-70a2cb243289/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903184433-817692d99fb1 h1:gkIr627I9/c83GiHs6ZRiTrWxod1/SnjTr2IWCZnOMw=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903184433-817692d99fb1/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
 github.com/dgamingfoundation/marketplace v0.0.0-20190814151107-16f6fa7827e3 h1:b2n22mbj3ohExLp7giPylfkAJCwoYuKe/Y5Ocbl44qY=
 github.com/dgamingfoundation/marketplace v0.0.0-20190814151107-16f6fa7827e3/go.mod h1:IHvksrKQYZlQveJUKWqxDsdq/rJ9WYwVCU8OpA6EyI4=
 github.com/dgamingfoundation/randapp v0.0.0-20190715103154-e4b398ef456d h1:2NdPDNDFEwyenuVVO8Cavx+V+y6tUK2DYPtdVhZF4nY=

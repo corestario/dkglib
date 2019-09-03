@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dkglib/lib"
 	"github.com/spf13/viper"
@@ -107,9 +108,9 @@ func getTools(validatorName string) (*context.Context, *authtxb.TxBuilder, error
 	if err != nil {
 		return nil, nil, err
 	}
-	ctx = ctx.WithFrom(validatorName).WithPassphrase(passphrase).WithFromAddress(addr)
+	ctx = ctx.WithFromName(validatorName).WithPassphrase(passphrase).WithFromAddress(addr)
 
-	baseAccount := authtxb.NewBaseAccountWithAddress(ctx.FromAddress)
+	baseAccount := auth.NewBaseAccountWithAddress(ctx.FromAddress)
 	accNumber := baseAccount.GetAccountNumber()
 	kb, err := keys.NewKeyBaseFromDir(ctx.Home)
 	if err != nil {
