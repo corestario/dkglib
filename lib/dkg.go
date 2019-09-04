@@ -65,7 +65,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 			handler = m.dealer.HandleDKGReconstructCommit
 		}
 		for _, msg := range messages {
-			if err := handler(msg); err != nil {
+			if err := handler(msg.Data); err != nil {
 				return fmt.Errorf("failed to handle message: %v", err), false
 			}
 		}
@@ -103,13 +103,13 @@ func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
 	return utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
 }
 
-func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*types.DKGData, error) {
+func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*randapp.DKGData, error) {
 	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
 	}
 
-	var data []*types.DKGData
+	var data []*randapp.DKGData
 	var dec = gob.NewDecoder(bytes.NewBuffer(res))
 	if err := dec.Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to decode DKG data: %v", err)
