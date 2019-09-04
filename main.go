@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"strconv"
 	"sync"
 	"time"
 
@@ -26,7 +27,7 @@ import (
 const (
 	nodeEndpoint  = "tcp://localhost:26657" // TODO: get this from command line args
 	chainID       = "rchain"
-	validatorName = "validator0"
+	validatorName = "validator"
 	passphrase    = "12345678"
 )
 
@@ -48,15 +49,17 @@ func main() {
 		vals   []*types.Validator
 		pvals  []types.PrivValidator
 	)
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 4; i++ {
 		v, pv := getValidatorEnv()
 		vals, pvals = append(vals, v), append(pvals, pv)
 
 	}
 
+	var mu sync.Mutex
+	MP := make(map[types.PrivValidator]lib.OnChainDKG)
 	wg := &sync.WaitGroup{}
-	for _, pval := range pvals {
-		cli, txBldr, err := getTools("validator0")
+	for k, pval := range pvals {
+		cli, txBldr, err := getTools(strconv.Itoa(k))
 		if err != nil {
 			fmt.Printf("failed to get a randapp client: %v", err)
 			os.Exit(1)
@@ -64,13 +67,17 @@ func main() {
 
 		wg.Add(1)
 
+		oc := lib.NewOnChainDKG(cli, txBldr)
+		pv := pval
+		mu.Lock()
+		MP[pv] = *oc
+		mu.Unlock()
 		go func(pval types.PrivValidator) {
-			oc := lib.NewOnChainDKG(cli, txBldr)
+			//oc := lib.NewOnChainDKG(cli, txBldr)
 			if err := oc.StartRound(types.NewValidatorSet(vals), pval, mockF, logger, 0); err != nil {
 				panic(fmt.Sprintf("failed to start round: %v", err))
 			}
-
-			tk := time.NewTicker(time.Second)
+			tk := time.NewTicker(time.Millisecond * 3000)
 			for {
 				select {
 				case <-tk.C:
@@ -94,21 +101,21 @@ func getValidatorEnv() (*types.Validator, types.PrivValidator) {
 	return types.NewValidator(pv.GetPubKey(), 1), pv
 }
 
-func getTools(validatorName string) (*context.Context, *authtxb.TxBuilder, error) {
-	if err := initConfig(validatorName); err != nil {
-		return nil, nil, fmt.Errorf("could not read config: %v", err)
-	}
+func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {
+	//if err := initConfig(validatorName); err != nil {
+	//	return nil, nil, fmt.Errorf("could not read config: %v", err)
+	//}
 	cdc := util.MakeCodec()
-	ctx, err := context.NewContext(chainID, nodeEndpoint, cliHome)
+	ctx, err := context.NewContext(chainID, nodeEndpoint, cliHome+vName)
 	if err != nil {
 		return nil, nil, err
 	}
 	ctx = ctx.WithCodec(cdc)
-	addr, _, err := context.GetFromFields(validatorName, cliHome)
+	addr, _, err := context.GetFromFields(validatorName+vName, cliHome+vName)
 	if err != nil {
 		return nil, nil, err
 	}
-	ctx = ctx.WithFromName(validatorName).WithPassphrase(passphrase).WithFromAddress(addr)
+	ctx = ctx.WithFromName(validatorName + vName).WithPassphrase(passphrase).WithFromAddress(addr).WithFrom(validatorName + vName)
 
 	baseAccount := auth.NewBaseAccountWithAddress(ctx.FromAddress)
 	accNumber := baseAccount.GetAccountNumber()
