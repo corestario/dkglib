@@ -63,6 +63,10 @@ github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903183604-70a2cb243
 github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903183604-70a2cb243289/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
 github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903184433-817692d99fb1 h1:gkIr627I9/c83GiHs6ZRiTrWxod1/SnjTr2IWCZnOMw=
 github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190903184433-817692d99fb1/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190904115212-b11de37fd5dd h1:ECrDsBeQSm7iQCFFwIdcBkTZ8sEVvBLqIdV7MtPzbG0=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190904115212-b11de37fd5dd/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190904115518-54b452a4037e h1:kUyPep5CLAlhFpXTz5iJjXB9n3V3yS947ZkSXqbEyMI=
+github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190904115518-54b452a4037e/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
 github.com/dgamingfoundation/marketplace v0.0.0-20190814151107-16f6fa7827e3 h1:b2n22mbj3ohExLp7giPylfkAJCwoYuKe/Y5Ocbl44qY=
 github.com/dgamingfoundation/marketplace v0.0.0-20190814151107-16f6fa7827e3/go.mod h1:IHvksrKQYZlQveJUKWqxDsdq/rJ9WYwVCU8OpA6EyI4=
 github.com/dgamingfoundation/randapp v0.0.0-20190715103154-e4b398ef456d h1:2NdPDNDFEwyenuVVO8Cavx+V+y6tUK2DYPtdVhZF4nY=

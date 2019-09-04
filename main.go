@@ -116,7 +116,7 @@ func getTools(validatorName string) (*context.Context, *authtxb.TxBuilder, error
 	if err != nil {
 		return nil, nil, err
 	}
-	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 0, 0.0, false, ctx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
+	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 400000, 0.0, false, ctx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
 	if err := ctx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}
