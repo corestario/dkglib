@@ -7,6 +7,7 @@ import (
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dkglib/lib"
 	"github.com/spf13/viper"
+	l "log"
 	"os"
 	"os/user"
 	"path"
@@ -67,7 +68,8 @@ func main() {
 
 		wg.Add(1)
 
-		oc := lib.NewOnChainDKG(cli, txBldr)
+		vLog := l.New(os.Stdout, cli.From+": ", 0)
+		oc := lib.NewOnChainDKG(cli, txBldr, *vLog)
 		pv := pval
 		mu.Lock()
 		MP[pv] = *oc
