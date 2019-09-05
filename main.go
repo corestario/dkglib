@@ -50,7 +50,7 @@ func main() {
 		vals   []*types.Validator
 		pvals  []types.PrivValidator
 	)
-	for i := 0; i < 4; i++ {
+	for i := 0; i < 5; i++ {
 		v, pv := getValidatorEnv()
 		vals, pvals = append(vals, v), append(pvals, pv)
 
