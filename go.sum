@@ -69,10 +69,14 @@ github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190904115518-54b452a40
 github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190904115518-54b452a4037e/go.mod h1:Ihg0N2ZMAC40w1sl2d5LwuP2vJkFN2ZPsHx1nq0jZaQ=
 github.com/dgamingfoundation/marketplace v0.0.0-20190814151107-16f6fa7827e3 h1:b2n22mbj3ohExLp7giPylfkAJCwoYuKe/Y5Ocbl44qY=
 github.com/dgamingfoundation/marketplace v0.0.0-20190814151107-16f6fa7827e3/go.mod h1:IHvksrKQYZlQveJUKWqxDsdq/rJ9WYwVCU8OpA6EyI4=
+github.com/dgamingfoundation/marketplace v0.0.0-20190829103843-b5b8e1c556ac h1:beXBOydDpTqt9kB5Ty/ccBy/1tk4FkVpSBjRVX7cN6Y=
+github.com/dgamingfoundation/marketplace v0.0.0-20190829103843-b5b8e1c556ac/go.mod h1:dR2O3HeDTpC2g0nMsjcCwwUqjQcMRaBKOoH34dsRYnA=
 github.com/dgamingfoundation/randapp v0.0.0-20190715103154-e4b398ef456d h1:2NdPDNDFEwyenuVVO8Cavx+V+y6tUK2DYPtdVhZF4nY=
 github.com/dgamingfoundation/randapp v0.0.0-20190715103154-e4b398ef456d/go.mod h1:3Q3SlGAFB0NsoWkl1Jusi9sS27w/MGSGsRcQ77khx+Y=
 github.com/dgamingfoundation/randapp v0.0.0-20190902110800-b61a6653839c h1:fWt1hyjuyzsucaVx+LmwL4Gvgf9H8ugeV8oNpewNLiQ=
 github.com/dgamingfoundation/randapp v0.0.0-20190902110800-b61a6653839c/go.mod h1:Tt3oJUCmzl85itUHv6xHfIAPOyhgs4Ze+tH6PeA7xx4=
+github.com/dgamingfoundation/randapp v0.0.0-20190905141514-5b140ec96ded h1:WZr8Uf8273lP2M4+8IB+P96nDOcT2pbtR1g4Fi/93vo=
+github.com/dgamingfoundation/randapp v0.0.0-20190905141514-5b140ec96ded/go.mod h1:sXxdwfBcNHCWXJMhIS7o4vm3Wz6KJIVrbPIiIOS7Jxg=
 github.com/dgamingfoundation/tendermint v0.27.0-rc1.0.20190830145446-2b64dd776342 h1:CZgS85CapiRKx9N3AegB0o1S0CsLH5SzK5T0v0HG97Y=
 github.com/dgamingfoundation/tendermint v0.27.0-rc1.0.20190830145446-2b64dd776342/go.mod h1:AnKVWL07Qx+HxiMAXuzQsQAocP6YBTh9pjzoJq0y+gY=
 github.com/dgamingfoundation/tendermint v0.27.3 h1:cWWZIbvk0sATF3v55e0RaWkvIoRdr0bDiraFP3+kxMc=
