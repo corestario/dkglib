@@ -6,11 +6,8 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/dkglib/lib"
-	"github.com/spf13/viper"
-	l "log"
 	"os"
 	"os/user"
-	"path"
 	"strconv"
 	"sync"
 	"time"
@@ -21,8 +18,6 @@ import (
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 const (
@@ -50,7 +45,7 @@ func main() {
 		vals   []*types.Validator
 		pvals  []types.PrivValidator
 	)
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 4; i++ {
 		v, pv := getValidatorEnv()
 		vals, pvals = append(vals, v), append(pvals, pv)
 
@@ -68,14 +63,12 @@ func main() {
 
 		wg.Add(1)
 
-		vLog := l.New(os.Stdout, cli.From+": ", 0)
-		oc := lib.NewOnChainDKG(cli, txBldr, *vLog)
+		oc := lib.NewOnChainDKG(cli, txBldr)
 		pv := pval
 		mu.Lock()
 		MP[pv] = *oc
 		mu.Unlock()
 		go func(pval types.PrivValidator) {
-			//oc := lib.NewOnChainDKG(cli, txBldr)
 			if err := oc.StartRound(types.NewValidatorSet(vals), pval, mockF, logger, 0); err != nil {
 				panic(fmt.Sprintf("failed to start round: %v", err))
 			}
@@ -104,9 +97,6 @@ func getValidatorEnv() (*types.Validator, types.PrivValidator) {
 }
 
 func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {
-	//if err := initConfig(validatorName); err != nil {
-	//	return nil, nil, fmt.Errorf("could not read config: %v", err)
-	//}
 	cdc := util.MakeCodec()
 	ctx, err := context.NewContext(chainID, nodeEndpoint, cliHome+vName)
 	if err != nil {
@@ -119,37 +109,21 @@ func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {
 	}
 	ctx = ctx.WithFromName(validatorName + vName).WithPassphrase(passphrase).WithFromAddress(addr).WithFrom(validatorName + vName)
 
-	baseAccount := auth.NewBaseAccountWithAddress(ctx.FromAddress)
-	accNumber := baseAccount.GetAccountNumber()
+	accRetriever := auth.NewAccountRetriever(ctx)
+	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(addr)
+	if err != nil {
+		return nil, nil, err
+	}
 	kb, err := keys.NewKeyBaseFromDir(ctx.Home)
 	if err != nil {
 		return nil, nil, err
 	}
-	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, 0, 400000, 0.0, false, ctx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
+	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, accSequence, 400000, 0.0, false, ctx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
 	if err := ctx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}
 
 	return &ctx, &txBldr, nil
-}
-
-func initConfig(_ string) error {
-	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
-	config.Seal()
-
-	cfgFile := path.Join(cliHome, "config", "config.toml")
-	if _, err := os.Stat(cfgFile); err == nil {
-		viper.SetConfigFile(cfgFile)
-
-		if err := viper.ReadInConfig(); err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 type MockFirer struct{}

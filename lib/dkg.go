@@ -5,8 +5,6 @@ import (
 	"encoding/gob"
 	"fmt"
 
-	l "log"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
@@ -22,16 +20,13 @@ type OnChainDKG struct {
 	cli       *context.Context
 	txBldr    *authtxb.TxBuilder
 	dealer    consensus.Dealer
-	logger    l.Logger
 	typesList []types.DKGDataType
-	c         int
 }
 
-func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder, l l.Logger) *OnChainDKG {
+func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG {
 	return &OnChainDKG{
 		cli:    cli,
 		txBldr: txBldr,
-		logger: l,
 	}
 }
 
@@ -54,7 +49,6 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 			return fmt.Errorf("failed to getDKGMessages: %v", err), false
 		}
 		var handler func(msg *types.DKGData) error
-		m.logger.Println("DEALS ARE READY", m.dealer.IsDealsReady())
 		switch dataType {
 		case types.DKGPubKey:
 			handler = m.dealer.HandleDKGPubKey
@@ -71,15 +65,10 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 		case types.DKGReconstructCommit:
 			handler = m.dealer.HandleDKGReconstructCommit
 		}
-		c := 0
 		for _, msg := range messages {
-			c++
 			if err := handler(msg.Data); err != nil {
 				return fmt.Errorf("failed to handle message: %v", err), false
 			}
-		}
-		if c > 0 {
-			m.logger.Println(fmt.Sprintf("GOT %d messages of type %d", c, dataType))
 		}
 	}
 
@@ -88,8 +77,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
 	}
-
-	return nil, false
+	return nil, true
 }
 
 func (m *OnChainDKG) StartRound(
@@ -107,10 +95,6 @@ func (m *OnChainDKG) StartRound(
 }
 
 func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
-	if data.Type == 1 {
-		m.logger.Println("SENDING DEALS", data.Addr)
-		m.c++
-	}
 	msg := randapp.NewMsgSendDKGData(data, m.cli.GetFromAddress())
 	if err := msg.ValidateBasic(); err != nil {
 		return err
@@ -133,8 +117,6 @@ func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*randapp.DKGD
 	if err := dec.Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to decode DKG data: %v", err)
 	}
-
-	m.logger.Println("DEALS NUMBER ", m.c)
 
 	return data, nil
 }
