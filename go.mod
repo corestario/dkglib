@@ -8,7 +8,6 @@ require (
 	github.com/dgamingfoundation/randapp v0.0.0-20190905141514-5b140ec96ded
 	github.com/rcrowley/go-metrics v0.0.0-20190826022208-cac0b30c2563 // indirect
 	github.com/rs/cors v1.7.0 // indirect
-	github.com/spf13/viper v1.4.0
 	github.com/tendermint/tendermint v0.32.3
 )
 
