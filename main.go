@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/user"
+	"path"
 	"strconv"
 	"sync"
 	"time"
@@ -39,7 +40,7 @@ func init() {
 		panic(err)
 	}
 
-	cliHome = usr.HomeDir + "/" + ".rcli"
+	cliHome = path.Join(usr.HomeDir, ".rcli")
 }
 
 func MakeCodec() *codec.Codec {
