@@ -294,14 +294,14 @@ func (m *BLSVerifier) VerifyRandomData(prevRandomData, currRandomData []byte) er
 
 func (m *BLSVerifier) Recover(msg []byte, precommits []*types.Vote) ([]byte, error) {
 	var sigs [][]byte
-	for _, precommit := range precommits {
-		// Nil votes do exist, keep that in mind.
-		if precommit == nil || len(precommit.BlockID.Hash) == 0 || len(precommit.BLSSignature) == 0 {
-			continue
-		}
-
-		sigs = append(sigs, precommit.BLSSignature)
-	}
+	//for _, precommit := range precommits {
+	//	// Nil votes do exist, keep that in mind.
+	//	if precommit == nil || len(precommit.BlockID.Hash) == 0 || len(precommit.BLSSignature) == 0 {
+	//		continue
+	//	}
+	//
+	//	sigs = append(sigs, precommit.BLSSignature)
+	//}
 
 	aggrSig, err := tbls.Recover(m.suiteG1, m.masterPubKey, msg, sigs, m.t, m.n)
 	if err != nil {
