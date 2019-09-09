@@ -12,6 +12,15 @@ type MsgSendDKGData struct {
 	Owner sdk.AccAddress
 }
 
+type RandDKGData struct {
+	Data  *DKGData       `json:"data"`
+	Owner sdk.AccAddress `json:"owner"`
+}
+
+func (m RandDKGData) String() string {
+	return fmt.Sprintf("Data: %+v, Owner: %s", m.Data, m.Owner.String())
+}
+
 func NewMsgSendDKGData(data *DKGData, owner sdk.AccAddress) MsgSendDKGData {
 	return MsgSendDKGData{
 		Data:  data,

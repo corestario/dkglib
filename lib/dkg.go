@@ -11,7 +11,6 @@ import (
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/dkglib/lib/types"
-	"github.com/dgamingfoundation/randapp/x/randapp"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 	tmtypes "github.com/tendermint/tendermint/types"
@@ -112,7 +111,7 @@ func (m *OnChainDKG) StartRound(
 }
 
 func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
-	msg := randapp.NewMsgSendDKGData(data, m.cli.GetFromAddress())
+	msg := types.NewMsgSendDKGData(data, m.cli.GetFromAddress())
 	if err := msg.ValidateBasic(); err != nil {
 		return err
 	}
@@ -123,13 +122,13 @@ func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
 	return err
 }
 
-func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*randapp.DKGData, error) {
+func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*types.RandDKGData, error) {
 	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
 	}
 
-	var data []*randapp.DKGData
+	var data []*types.RandDKGData
 	var dec = gob.NewDecoder(bytes.NewBuffer(res))
 	if err := dec.Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to decode DKG data: %v", err)

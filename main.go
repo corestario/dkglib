@@ -2,19 +2,23 @@ package main
 
 import (
 	"fmt"
-	"github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/dgamingfoundation/cosmos-utils/client/context"
-	"github.com/dgamingfoundation/dkglib/lib"
 	"os"
 	"os/user"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/staking"
 	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
+	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
-	"github.com/dgamingfoundation/randapp/util"
+	"github.com/dgamingfoundation/dkglib/lib"
+	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
@@ -36,6 +40,17 @@ func init() {
 	}
 
 	cliHome = usr.HomeDir + "/" + ".rcli"
+}
+
+func MakeCodec() *codec.Codec {
+	var cdc = codec.New()
+	auth.RegisterCodec(cdc)
+	bank.RegisterCodec(cdc)
+	cdc.RegisterConcrete(dkgtypes.MsgSendDKGData{}, "randapp/SendDKGData", nil)
+	staking.RegisterCodec(cdc)
+	sdk.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+	return cdc
 }
 
 func main() {
@@ -97,7 +112,7 @@ func getValidatorEnv() (*types.Validator, types.PrivValidator) {
 }
 
 func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {
-	cdc := util.MakeCodec()
+	cdc := MakeCodec()
 	ctx, err := context.NewContext(chainID, nodeEndpoint, cliHome+vName)
 	if err != nil {
 		return nil, nil, err
