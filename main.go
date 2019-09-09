@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"strconv"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/client/keys"
@@ -34,6 +35,7 @@ const (
 var cliHome = "~/.rcli" // TODO: get this from command line args
 
 func init() {
+	populateMocks()
 	usr, err := user.Current()
 	if err != nil {
 		panic(err)
@@ -61,20 +63,26 @@ func main() {
 		mockF  = &MockFirer{}
 		logger = log.NewTMLogger(os.Stdout)
 	)
-	val, pval := getValidatorEnv()
-	num := "0"
+
+	numStr := "0"
 	if numPtr != nil {
-		num = *numPtr
+		numStr = *numPtr
 	}
 
-	cli, txBldr, err := getTools(num)
+	num, err := strconv.Atoi(numStr)
+	if err != nil {
+		panic(err)
+	}
+	pval := MockPVs[num]
+
+	cli, txBldr, err := getTools(numStr)
 	if err != nil {
 		fmt.Printf("failed to get a randapp client: %v", err)
 		os.Exit(1)
 	}
 
 	oc := lib.NewOnChainDKG(cli, txBldr)
-	if err := oc.StartRound(types.NewValidatorSet([]*types.Validator{val}), pval, mockF, logger, 0); err != nil {
+	if err := oc.StartRound(types.NewValidatorSet(MockValidators), pval, mockF, logger, 0); err != nil {
 		panic(fmt.Sprintf("failed to start round: %v", err))
 	}
 	tk := time.NewTicker(time.Millisecond * 3000)
