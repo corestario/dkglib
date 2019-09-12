@@ -134,5 +134,9 @@ func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*types.RandDK
 		return nil, fmt.Errorf("failed to decode DKG data: %v", err)
 	}
 
+	if dataType == 0 {
+		fmt.Println("DATA LEN=", data)
+	}
+
 	return data, nil
 }
