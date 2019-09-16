@@ -11,8 +11,8 @@ import (
 	"path/filepath"
 	"sync"
 
-	types "github.com/dgamingfoundation/tendermint/alias"
 	"github.com/pkg/errors"
+	types "github.com/tendermint/tendermint/alias"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"

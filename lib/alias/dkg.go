@@ -1,8 +1,8 @@
 package alias
 
 import (
-	tmalias "github.com/dgamingfoundation/tendermint/alias"
 	"github.com/tendermint/go-amino"
+	tmalias "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
 )
 
