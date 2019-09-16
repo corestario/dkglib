@@ -1,6 +1,7 @@
 package alias
 
 import (
+	tmtypes "github.com/dgamingfoundation/tendermint/types"
 	"github.com/tendermint/go-amino"
 	tmalias "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
@@ -54,5 +55,20 @@ func (m *DKGData) GetAddrString() string {
 }
 
 func (m *DKGData) ValidateBasic() error {
+	return nil
+}
+
+func SignDKGData(privValidator tmtypes.PrivValidator, data *DKGData) error {
+	var (
+		signBytes, sig []byte
+		err            error
+	)
+	if signBytes, err = data.SignBytes(); err != nil {
+		return err
+	}
+	if sig, err = pv.privKey.Sign(signBytes); err != nil {
+		return err
+	}
+	data.Signature = sig
 	return nil
 }
