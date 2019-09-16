@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"math"
 	"sort"
 
 	"github.com/dgamingfoundation/dkglib/lib/types"
@@ -100,6 +99,7 @@ func (ds DealerState) GetRoundID() int { return ds.roundID }
 type DKGDealerConstructor func(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*types.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer
 
 func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*types.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
+	responsesNum := validators.Size() - 1
 	return &DKGDealer{
 		DealerState: DealerState{
 			validators: validators,
@@ -112,8 +112,8 @@ func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, se
 		suiteG1:    bn256.NewSuiteG1(),
 		suiteG2:    bn256.NewSuiteG2(),
 
-		responses:          newMessageStore(validators.Size() - 1),
-		justifications:     newMessageStore(int(math.Pow(float64(validators.Size()-1), 2))),
+		responses:          newMessageStore(responsesNum),
+		justifications:     newMessageStore(responsesNum * responsesNum),
 		commits:            newMessageStore(1),
 		complaints:         newMessageStore(1),
 		reconstructCommits: newMessageStore(1),
@@ -427,7 +427,8 @@ func (d *DKGDealer) ProcessResponses() (error, bool) {
 }
 
 func (d *DKGDealer) IsResponsesReady() bool {
-	return d.responses.messagesCount >= int(math.Pow(float64(d.validators.Size()-1), 2))
+	responsesNum := d.validators.Size() - 1
+	return d.responses.messagesCount >= responsesNum*responsesNum
 }
 
 func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
@@ -541,7 +542,8 @@ func (d *DKGDealer) ProcessJustifications() (error, bool) {
 
 func (d *DKGDealer) IsJustificationsReady() bool {
 	// N * (N - 1) ^ 2.
-	return d.justifications.messagesCount >= d.validators.Size()*int(math.Pow(float64(d.validators.Size()-1), 2))
+	respNum := d.validators.Size() - 1
+	return d.justifications.messagesCount >= d.validators.Size()*respNum*respNum
 }
 
 func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {

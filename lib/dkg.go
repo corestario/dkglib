@@ -82,6 +82,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 			handler = m.dealer.HandleDKGReconstructCommit
 		}
 		for _, msg := range messages {
+			msg := msg
 			if err := handler(msg.Data); err != nil {
 				return fmt.Errorf("failed to handle message: %v", err), false
 			}
