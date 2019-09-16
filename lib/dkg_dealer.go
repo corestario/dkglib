@@ -10,7 +10,6 @@ import (
 	"sort"
 
 	"github.com/dgamingfoundation/dkglib/lib/alias"
-
 	"github.com/dgamingfoundation/dkglib/lib/types"
 	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"

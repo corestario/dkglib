@@ -74,10 +74,6 @@ type BLSKeyring struct {
 	MasterPubKey *share.PubPoly    // Public key used to verify individual and aggregate signatures
 }
 
-func init() {
-	types.RegisterBlockAmino(types.Cdc)
-}
-
 // NewBLSKeyring generates a tbls keyring (master key, t-of-n shares).
 func NewBLSKeyring(t, n int) (*BLSKeyring, error) {
 	if t > n {

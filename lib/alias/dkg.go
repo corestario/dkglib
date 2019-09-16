@@ -33,6 +33,10 @@ type DKGData struct {
 	Signature []byte
 }
 
+func init() {
+	RegisterBlockAmino(Cdc)
+}
+
 func (m DKGData) SignBytes() ([]byte, error) {
 	var (
 		sb  []byte

@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dgamingfoundation/dkglib/lib/alias"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/dgamingfoundation/dkglib/lib/alias"
 )
 
 type MsgSendDKGData struct {
