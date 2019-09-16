@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/types"
+	types "github.com/dgamingfoundation/tendermint/alias"
+	"github.com/dgamingfoundation/tendermint/crypto/ed25519"
 )
 
 var MockValidators []*types.Validator

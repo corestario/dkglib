@@ -9,11 +9,13 @@ import (
 	"math"
 	"sort"
 
+	"github.com/dgamingfoundation/dkglib/lib/alias"
+
 	"github.com/dgamingfoundation/dkglib/lib/types"
+	tmtypes "github.com/dgamingfoundation/tendermint/alias"
 	"github.com/dgamingfoundation/tendermint/crypto"
 	"github.com/dgamingfoundation/tendermint/libs/events"
 	"github.com/dgamingfoundation/tendermint/libs/log"
-	tmtypes "github.com/dgamingfoundation/tendermint/types"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
 	"go.dedis.ch/kyber/v3/share"
@@ -27,31 +29,31 @@ type Dealer interface {
 	Transit() error
 	GenerateTransitions()
 	GetLosers() []*tmtypes.Validator
-	HandleDKGPubKey(msg *types.DKGData) error
+	HandleDKGPubKey(msg *alias.DKGData) error
 	SetTransitions(t []transition)
 	SendDeals() (err error, ready bool)
 	IsReady() bool
-	GetDeals() ([]*types.DKGData, error)
-	HandleDKGDeal(msg *types.DKGData) error
+	GetDeals() ([]*alias.DKGData, error)
+	HandleDKGDeal(msg *alias.DKGData) error
 	ProcessDeals() (err error, ready bool)
 	IsDealsReady() bool
-	GetResponses() ([]*types.DKGData, error)
-	HandleDKGResponse(msg *types.DKGData) error
+	GetResponses() ([]*alias.DKGData, error)
+	HandleDKGResponse(msg *alias.DKGData) error
 	ProcessResponses() (err error, ready bool)
-	HandleDKGJustification(msg *types.DKGData) error
+	HandleDKGJustification(msg *alias.DKGData) error
 	ProcessJustifications() (err error, ready bool)
 	IsResponsesReady() bool
-	GetJustifications() ([]*types.DKGData, error)
-	HandleDKGCommit(msg *types.DKGData) error
+	GetJustifications() ([]*alias.DKGData, error)
+	HandleDKGCommit(msg *alias.DKGData) error
 	ProcessCommits() (err error, ready bool)
 	IsJustificationsReady() bool
 	GetCommits() (*dkg.SecretCommits, error)
-	HandleDKGComplaint(msg *types.DKGData) error
+	HandleDKGComplaint(msg *alias.DKGData) error
 	ProcessComplaints() (err error, ready bool)
-	HandleDKGReconstructCommit(msg *types.DKGData) error
+	HandleDKGReconstructCommit(msg *alias.DKGData) error
 	ProcessReconstructCommits() (err error, ready bool)
 	GetVerifier() (types.Verifier, error)
-	SendMsgCb(*types.DKGData) error
+	SendMsgCb(*alias.DKGData) error
 	VerifyMessage(msg DKGDataMessage) error
 }
 
@@ -59,7 +61,7 @@ type DKGDealer struct {
 	DealerState
 	eventFirer events.Fireable
 
-	sendMsgCb func(*types.DKGData) error
+	sendMsgCb func(*alias.DKGData) error
 	logger    log.Logger
 
 	pubKey      kyber.Point
@@ -97,9 +99,9 @@ func (ds DealerState) GetValidatorsCount() int {
 
 func (ds DealerState) GetRoundID() int { return ds.roundID }
 
-type DKGDealerConstructor func(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*types.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer
+type DKGDealerConstructor func(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer
 
-func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*types.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
+func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
 	return &DKGDealer{
 		DealerState: DealerState{
 			validators: validators,
@@ -138,8 +140,8 @@ func (d *DKGDealer) Start() error {
 	}
 
 	d.logger.Info("dkgState: sending pub key", "key", d.pubKey.String())
-	err := d.SendMsgCb(&types.DKGData{
-		Type:    types.DKGPubKey,
+	err := d.SendMsgCb(&alias.DKGData{
+		Type:    alias.DKGPubKey,
 		RoundID: d.roundID,
 		Addr:    d.addrBytes,
 		Data:    buf.Bytes(),
@@ -205,7 +207,7 @@ func (d *DKGDealer) GetLosers() []*tmtypes.Validator {
 //
 //////////////////////////////////////////////////////////////////////////////
 
-func (d *DKGDealer) HandleDKGPubKey(msg *types.DKGData) error {
+func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
 	var (
 		dec    = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		pubKey = d.suiteG2.Point()
@@ -248,7 +250,7 @@ func (d *DKGDealer) IsReady() bool {
 	return len(d.pubKeys) == d.validators.Size()
 }
 
-func (d *DKGDealer) GetDeals() ([]*types.DKGData, error) {
+func (d *DKGDealer) GetDeals() ([]*alias.DKGData, error) {
 	// It's needed for DistKeyGenerator and for binary search in array
 	sort.Sort(d.pubKeys)
 	dkgInstance, err := dkg.NewDistKeyGenerator(d.suiteG2, d.secKey, d.pubKeys.GetPKs(), (d.validators.Size()*2)/3)
@@ -267,7 +269,7 @@ func (d *DKGDealer) GetDeals() ([]*types.DKGData, error) {
 		break
 	}
 
-	var dealMessages []*types.DKGData
+	var dealMessages []*alias.DKGData
 	for toIndex, deal := range deals {
 		var (
 			buf = bytes.NewBuffer(nil)
@@ -278,8 +280,8 @@ func (d *DKGDealer) GetDeals() ([]*types.DKGData, error) {
 			return dealMessages, fmt.Errorf("failed to encode deal #%d: %v", deal.Index, err)
 		}
 
-		dealMessage := &types.DKGData{
-			Type:    types.DKGDeal,
+		dealMessage := &alias.DKGData{
+			Type:    alias.DKGDeal,
 			RoundID: d.roundID,
 			Addr:    d.addrBytes,
 			Data:    buf.Bytes(),
@@ -292,7 +294,7 @@ func (d *DKGDealer) GetDeals() ([]*types.DKGData, error) {
 	return dealMessages, nil
 }
 
-func (d *DKGDealer) HandleDKGDeal(msg *types.DKGData) error {
+func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 	var (
 		dec  = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		deal = &dkg.Deal{ // We need to initialize everything down to the kyber.Point to avoid nil panics.
@@ -349,8 +351,8 @@ func (d *DKGDealer) IsDealsReady() bool {
 	return len(d.deals) >= d.validators.Size()-1
 }
 
-func (d *DKGDealer) GetResponses() ([]*types.DKGData, error) {
-	var messages []*types.DKGData
+func (d *DKGDealer) GetResponses() ([]*alias.DKGData, error) {
+	var messages []*alias.DKGData
 
 	// Each deal produces a response for the deal's issuer (that makes N - 1 responses).
 	for _, deal := range d.deals {
@@ -366,8 +368,8 @@ func (d *DKGDealer) GetResponses() ([]*types.DKGData, error) {
 			return messages, fmt.Errorf("failed to encode response: %v", err)
 		}
 
-		messages = append(messages, &types.DKGData{
-			Type:    types.DKGResponse,
+		messages = append(messages, &alias.DKGData{
+			Type:    alias.DKGResponse,
 			RoundID: d.roundID,
 			Addr:    d.addrBytes,
 			Data:    buf.Bytes(),
@@ -378,7 +380,7 @@ func (d *DKGDealer) GetResponses() ([]*types.DKGData, error) {
 	return messages, nil
 }
 
-func (d *DKGDealer) HandleDKGResponse(msg *types.DKGData) error {
+func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
 	var (
 		dec  = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		resp = &dkg.Response{}
@@ -454,14 +456,14 @@ func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (d *DKGDealer) GetJustifications() ([]*types.DKGData, error) {
-	var messages []*types.DKGData
+func (d *DKGDealer) GetJustifications() ([]*alias.DKGData, error) {
+	var messages []*alias.DKGData
 
 	for _, peerResponses := range d.responses.data {
 		for _, response := range peerResponses {
 			resp := response.(*dkg.Response)
-			var msg = &types.DKGData{
-				Type:    types.DKGJustification,
+			var msg = &alias.DKGData{
+				Type:    alias.DKGJustification,
 				RoundID: d.roundID,
 				Addr:    d.addrBytes,
 			}
@@ -485,7 +487,7 @@ func (d *DKGDealer) GetJustifications() ([]*types.DKGData, error) {
 	return messages, nil
 }
 
-func (d *DKGDealer) HandleDKGJustification(msg *types.DKGData) error {
+func (d *DKGDealer) HandleDKGJustification(msg *alias.DKGData) error {
 	var justification *dkg.Justification
 	if msg.Data != nil {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
@@ -523,8 +525,8 @@ func (d *DKGDealer) ProcessJustifications() (error, bool) {
 		return fmt.Errorf("failed to encode response: %v", err), true
 	}
 
-	message := &types.DKGData{
-		Type:        types.DKGCommits,
+	message := &alias.DKGData{
+		Type:        alias.DKGCommits,
 		RoundID:     d.roundID,
 		Addr:        d.addrBytes,
 		Data:        buf.Bytes(),
@@ -596,7 +598,7 @@ func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {
 //
 //////////////////////////////////////////////////////////////////////////////
 
-func (d *DKGDealer) HandleDKGCommit(msg *types.DKGData) error {
+func (d *DKGDealer) HandleDKGCommit(msg *alias.DKGData) error {
 	dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
 	commits := &dkg.SecretCommits{}
 	for i := 0; i < msg.NumEntities; i++ {
@@ -621,12 +623,12 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 	d.logger.Info("dkgState: processing commits")
 
 	var alreadyFinished = true
-	var messages []*types.DKGData
+	var messages []*alias.DKGData
 	for _, commitsFromAddr := range d.commits.data {
 		for _, c := range commitsFromAddr {
 			commits := c.(*dkg.SecretCommits)
-			var msg = &types.DKGData{
-				Type:    types.DKGComplaint,
+			var msg = &alias.DKGData{
+				Type:    alias.DKGComplaint,
 				RoundID: d.roundID,
 				Addr:    d.addrBytes,
 			}
@@ -663,7 +665,7 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 	return nil, true
 }
 
-func (d *DKGDealer) HandleDKGComplaint(msg *types.DKGData) error {
+func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
 	var complaint *dkg.ComplaintCommits
 	if msg.Data != nil {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
@@ -696,8 +698,8 @@ func (d *DKGDealer) ProcessComplaints() (error, bool) {
 	for _, peerComplaints := range d.complaints.data {
 		for _, c := range peerComplaints {
 			complaint := c.(*dkg.ComplaintCommits)
-			var msg = &types.DKGData{
-				Type:    types.DKGReconstructCommit,
+			var msg = &alias.DKGData{
+				Type:    alias.DKGReconstructCommit,
 				RoundID: d.roundID,
 				Addr:    d.addrBytes,
 			}
@@ -728,7 +730,7 @@ func (d *DKGDealer) ProcessComplaints() (error, bool) {
 	return nil, true
 }
 
-func (d *DKGDealer) HandleDKGReconstructCommit(msg *types.DKGData) error {
+func (d *DKGDealer) HandleDKGReconstructCommit(msg *alias.DKGData) error {
 	var rc *dkg.ReconstructCommits
 	if msg.Data != nil {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
@@ -814,7 +816,7 @@ func (d *DKGDealer) VerifyMessage(msg DKGDataMessage) error {
 	return nil
 }
 
-func (d *DKGDealer) SendMsgCb(msg *types.DKGData) error {
+func (d *DKGDealer) SendMsgCb(msg *alias.DKGData) error {
 	return d.sendMsgCb(msg)
 }
 

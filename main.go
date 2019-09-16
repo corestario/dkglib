@@ -20,9 +20,9 @@ import (
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/dkglib/lib"
 	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
+	types "github.com/dgamingfoundation/tendermint/alias"
 	"github.com/dgamingfoundation/tendermint/libs/events"
 	"github.com/dgamingfoundation/tendermint/libs/log"
-	"github.com/dgamingfoundation/tendermint/types"
 )
 
 const (
@@ -99,11 +99,6 @@ func main() {
 		}
 	}
 
-}
-
-func getValidatorEnv() (*types.Validator, types.PrivValidator) {
-	pv := types.NewMockPV()
-	return types.NewValidator(pv.GetPubKey(), 1), pv
 }
 
 func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {

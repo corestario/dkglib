@@ -11,11 +11,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/tendermint/go-amino"
-
-	"github.com/dgamingfoundation/tendermint/crypto"
-	"github.com/dgamingfoundation/tendermint/types"
-
+	types "github.com/dgamingfoundation/tendermint/alias"
 	"github.com/pkg/errors"
 	"go.dedis.ch/kyber/v3"
 	"go.dedis.ch/kyber/v3/pairing/bn256"
@@ -51,8 +47,6 @@ const (
 	DefaultBLSVerifierPrivKey      = "I/+HAwEBCFByaVNoYXJlAf+IAAECAQFJAQQAAQFWAf+KAAAAEv+JBgEBBlNjYWxhcgH/igAAACX/iAIgTx30WSwv2cXmC0ybf5OhX9RIHMog0dss+ecmfgAeVOIA"
 )
 
-var cdc = amino.NewCodec()
-
 var TestnetMasterPubKey = "Df+DAgEC/4QAAf+CAAAR/4EGAQEFUG9pbnQB/4IAAAD+AYr/hAAD/4BZ1TvrtwmGJAEd7LX/6ywfWPCDstuv+THtNjdGaddQoVMmZ66itgzJ7WKpH9m8zSQrG1KgzpVMgrlUsh9g8n39YUCVYfKap+DCiN0pitOT7RoIYOZf2KVDZN1z4xg8VEsq03/C0PRbIFOFybsBYUhsesA1EPK94Duh/JMgJry2g/+ATxakEQPACdVDV8hf6La7w4KO9uGSt3aXS1Qx0YGQLzUVbBCl13Ii33daGLro8EPK/ItTTadwoGrpFLnpfnZhVmqrFojVMZGX+WePrKy5qPHrp2rIagq0J9AqmGcYAHRCEjWxsuHWotZZRBv0L+wy5zdBIMVgLT40J/7nY6qvUVj/gBJApeCMkB08+wuSKSd9/IsIJ7FfxRS6wM9qazxcKCSgXkvcSRtClB9a7awKkit2aZHYa4y46K9gZdOTWChiXq9oo4HWXGsviadnB612HbrCp9UJLkaWyIRA/tylJGFMDY109FS+Bg6XlyT+QwirN7rd/AB5ju7IU0CkVUsM74tI"
 var TestnetShares = map[int]*BLSShareJSON{
 	0: {
@@ -81,7 +75,7 @@ type BLSKeyring struct {
 }
 
 func init() {
-	types.RegisterBlockAmino(cdc)
+	types.RegisterBlockAmino(types.Cdc)
 }
 
 // NewBLSKeyring generates a tbls keyring (master key, t-of-n shares).
@@ -366,48 +360,4 @@ func (m *MockVerifier) VerifyRandomData(prevRandomData, currRandomData []byte) e
 }
 func (m *MockVerifier) Recover(msg []byte, precommits []*types.Vote) ([]byte, error) {
 	return []byte{}, nil
-}
-
-type DKGDataType int
-
-const (
-	DKGPubKey DKGDataType = iota
-	DKGDeal
-	DKGResponse
-	DKGJustification
-	DKGCommits
-	DKGComplaint
-	DKGReconstructCommit
-)
-
-type DKGData struct {
-	Type        DKGDataType
-	Addr        []byte
-	RoundID     int
-	Data        []byte // Data is going to keep serialized kyber objects.
-	ToIndex     int    // ID of the participant for whom the message is; might be not set
-	NumEntities int    // Number of sub-entities in the Data array, sometimes required for unmarshaling.
-
-	//Signature for verifying data
-	Signature []byte
-}
-
-func (m DKGData) SignBytes() ([]byte, error) {
-	var (
-		sb  []byte
-		err error
-	)
-	m.Signature = nil
-	if sb, err = cdc.MarshalBinaryLengthPrefixed(m); err != nil {
-		return nil, err
-	}
-	return sb, nil
-}
-
-func (m *DKGData) GetAddrString() string {
-	return crypto.Address(m.Addr).String()
-}
-
-func (m *DKGData) ValidateBasic() error {
-	return nil
 }

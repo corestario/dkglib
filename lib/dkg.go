@@ -10,10 +10,11 @@ import (
 	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
+	"github.com/dgamingfoundation/dkglib/lib/alias"
 	"github.com/dgamingfoundation/dkglib/lib/types"
+	tmtypes "github.com/dgamingfoundation/tendermint/alias"
 	"github.com/dgamingfoundation/tendermint/libs/events"
 	"github.com/dgamingfoundation/tendermint/libs/log"
-	tmtypes "github.com/dgamingfoundation/tendermint/types"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 )
 
 type DKGDataMessage struct {
-	Data *types.DKGData
+	Data *alias.DKGData
 }
 
 func (m *DKGDataMessage) ValidateBasic() error {
@@ -36,7 +37,7 @@ type OnChainDKG struct {
 	cli       *context.Context
 	txBldr    *authtxb.TxBuilder
 	dealer    Dealer
-	typesList []types.DKGDataType
+	typesList []alias.DKGDataType
 }
 
 func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG {
@@ -51,34 +52,34 @@ func (m *OnChainDKG) GetVerifier() (types.Verifier, error) {
 }
 
 func (m *OnChainDKG) ProcessBlock() (error, bool) {
-	for _, dataType := range []types.DKGDataType{
-		types.DKGPubKey,
-		types.DKGDeal,
-		types.DKGResponse,
-		types.DKGJustification,
-		types.DKGCommits,
-		types.DKGComplaint,
-		types.DKGReconstructCommit,
+	for _, dataType := range []alias.DKGDataType{
+		alias.DKGPubKey,
+		alias.DKGDeal,
+		alias.DKGResponse,
+		alias.DKGJustification,
+		alias.DKGCommits,
+		alias.DKGComplaint,
+		alias.DKGReconstructCommit,
 	} {
 		messages, err := m.getDKGMessages(dataType)
 		if err != nil {
 			return fmt.Errorf("failed to getDKGMessages: %v", err), false
 		}
-		var handler func(msg *types.DKGData) error
+		var handler func(msg *alias.DKGData) error
 		switch dataType {
-		case types.DKGPubKey:
+		case alias.DKGPubKey:
 			handler = m.dealer.HandleDKGPubKey
-		case types.DKGDeal:
+		case alias.DKGDeal:
 			handler = m.dealer.HandleDKGDeal
-		case types.DKGResponse:
+		case alias.DKGResponse:
 			handler = m.dealer.HandleDKGResponse
-		case types.DKGJustification:
+		case alias.DKGJustification:
 			handler = m.dealer.HandleDKGJustification
-		case types.DKGCommits:
+		case alias.DKGCommits:
 			handler = m.dealer.HandleDKGCommit
-		case types.DKGComplaint:
+		case alias.DKGComplaint:
 			handler = m.dealer.HandleDKGComplaint
-		case types.DKGReconstructCommit:
+		case alias.DKGReconstructCommit:
 			handler = m.dealer.HandleDKGReconstructCommit
 		}
 		for _, msg := range messages {
@@ -110,7 +111,7 @@ func (m *OnChainDKG) StartRound(
 	return nil
 }
 
-func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
+func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 	msg := types.NewMsgSendDKGData(data, m.cli.GetFromAddress())
 	if err := msg.ValidateBasic(); err != nil {
 		return err
@@ -122,7 +123,7 @@ func (m *OnChainDKG) sendMsg(data *types.DKGData) error {
 	return err
 }
 
-func (m *OnChainDKG) getDKGMessages(dataType types.DKGDataType) ([]*types.RandDKGData, error) {
+func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*types.RandDKGData, error) {
 	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
