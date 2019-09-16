@@ -13,8 +13,8 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/types"
+	"github.com/dgamingfoundation/tendermint/crypto"
+	"github.com/dgamingfoundation/tendermint/types"
 
 	"github.com/pkg/errors"
 	"go.dedis.ch/kyber/v3"

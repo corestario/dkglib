@@ -11,9 +11,9 @@ import (
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/dkglib/lib/types"
-	"github.com/tendermint/tendermint/libs/events"
-	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/dgamingfoundation/tendermint/libs/events"
+	"github.com/dgamingfoundation/tendermint/libs/log"
+	tmtypes "github.com/dgamingfoundation/tendermint/types"
 )
 
 var (

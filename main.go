@@ -20,9 +20,9 @@ import (
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/dkglib/lib"
 	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
-	"github.com/tendermint/tendermint/libs/events"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/types"
+	"github.com/dgamingfoundation/tendermint/libs/events"
+	"github.com/dgamingfoundation/tendermint/libs/log"
+	"github.com/dgamingfoundation/tendermint/types"
 )
 
 const (
