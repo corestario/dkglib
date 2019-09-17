@@ -800,15 +800,13 @@ func (d *DKGDealer) GetVerifier() (types.Verifier, error) {
 func (d *DKGDealer) VerifyMessage(msg DKGDataMessage) error {
 	var (
 		signBytes []byte
-		err       error
 	)
 	_, validator := d.validators.GetByAddress(msg.Data.Addr)
 	if validator == nil {
 		return fmt.Errorf("can't find validator by address: %s", msg.Data.GetAddrString())
 	}
-	if signBytes, err = msg.Data.SignBytes(); err != nil {
-		return err
-	}
+
+	signBytes = msg.Data.SignBytes("")
 	if !validator.PubKey.VerifyBytes(signBytes, msg.Data.Signature) {
 		return fmt.Errorf("invalid DKG message signature: %s", hex.EncodeToString(msg.Data.Signature))
 	}
