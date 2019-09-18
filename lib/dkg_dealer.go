@@ -112,13 +112,12 @@ func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, se
 		suiteG1:    bn256.NewSuiteG1(),
 		suiteG2:    bn256.NewSuiteG2(),
 
+		deals:              make(map[string]*dkg.Deal),
 		responses:          newMessageStore(responsesNum),
 		justifications:     newMessageStore(responsesNum * responsesNum),
 		commits:            newMessageStore(1),
 		complaints:         newMessageStore(1),
 		reconstructCommits: newMessageStore(1),
-
-		deals: make(map[string]*dkg.Deal),
 	}
 }
 
@@ -398,7 +397,7 @@ func (d *DKGDealer) HandleDKGResponse(msg *types.DKGData) error {
 
 	d.logger.Info("dkgState: response is intended for us, storing")
 
-	d.responses.add(msg.GetAddrString(), resp)
+	d.responses.add(msg.GetAddrString(), &StoredMsg{msg: resp})
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -427,8 +426,7 @@ func (d *DKGDealer) ProcessResponses() (error, bool) {
 }
 
 func (d *DKGDealer) IsResponsesReady() bool {
-	responsesNum := d.validators.Size() - 1
-	return d.responses.messagesCount >= responsesNum*responsesNum
+	return d.responses.messageCount() == d.responses.maxMessagesFromPeer
 }
 
 func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
@@ -456,11 +454,21 @@ func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
 }
 
 func (d *DKGDealer) GetJustifications() ([]*types.DKGData, error) {
+	fmt.Printf("GET RESPONSES %#+v:\n", d.responses)
+	for k, v := range d.responses.data {
+		k, v := k, v
+		fmt.Printf("map-string: %+v", k)
+		for _, val := range v {
+			val := val
+			fmt.Printf("%#+v\t", val)
+		}
+	}
+
 	var messages []*types.DKGData
 
 	for _, peerResponses := range d.responses.data {
 		for _, response := range peerResponses {
-			resp := response.(*dkg.Response)
+			resp := response.GetMsg().(*dkg.Response)
 			var msg = &types.DKGData{
 				Type:    types.DKGJustification,
 				RoundID: d.roundID,
@@ -496,7 +504,7 @@ func (d *DKGDealer) HandleDKGJustification(msg *types.DKGData) error {
 		}
 	}
 
-	d.justifications.add(msg.GetAddrString(), justification)
+	d.justifications.add(msg.GetAddrString(), &StoredMsg{msg: justification})
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -543,13 +551,13 @@ func (d *DKGDealer) ProcessJustifications() (error, bool) {
 func (d *DKGDealer) IsJustificationsReady() bool {
 	// N * (N - 1) ^ 2.
 	respNum := d.validators.Size() - 1
-	return d.justifications.messagesCount >= d.validators.Size()*respNum*respNum
+	return d.justifications.messageCount() >= d.validators.Size()*respNum*respNum
 }
 
 func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {
 	for _, peerJustifications := range d.justifications.data {
 		for _, just := range peerJustifications {
-			justification := just.(*dkg.Justification)
+			justification := just.GetMsg().(*dkg.Justification)
 			if justification != nil {
 				d.logger.Info("dkgState: processing non-empty justification", "from", justification.Index)
 				if err := d.instance.ProcessJustification(justification); err != nil {
@@ -607,7 +615,7 @@ func (d *DKGDealer) HandleDKGCommit(msg *types.DKGData) error {
 	if err := dec.Decode(commits); err != nil {
 		return fmt.Errorf("failed to decode commit: %v", err)
 	}
-	d.commits.add(msg.GetAddrString(), commits)
+	d.commits.add(msg.GetAddrString(), &StoredMsg{msg: commits})
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -617,7 +625,7 @@ func (d *DKGDealer) HandleDKGCommit(msg *types.DKGData) error {
 }
 
 func (d *DKGDealer) ProcessCommits() (error, bool) {
-	if d.commits.messagesCount < len(d.instance.QUAL()) {
+	if d.commits.messageCount() < len(d.instance.QUAL()) {
 		return nil, false
 	}
 	d.logger.Info("dkgState: processing commits")
@@ -626,7 +634,7 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 	var messages []*types.DKGData
 	for _, commitsFromAddr := range d.commits.data {
 		for _, c := range commitsFromAddr {
-			commits := c.(*dkg.SecretCommits)
+			commits := c.GetMsg().(*dkg.SecretCommits)
 			var msg = &types.DKGData{
 				Type:    types.DKGComplaint,
 				RoundID: d.roundID,
@@ -680,7 +688,7 @@ func (d *DKGDealer) HandleDKGComplaint(msg *types.DKGData) error {
 		}
 	}
 
-	d.complaints.add(msg.GetAddrString(), complaint)
+	d.complaints.add(msg.GetAddrString(), &StoredMsg{msg: complaint})
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -690,14 +698,14 @@ func (d *DKGDealer) HandleDKGComplaint(msg *types.DKGData) error {
 }
 
 func (d *DKGDealer) ProcessComplaints() (error, bool) {
-	if d.complaints.messagesCount < len(d.instance.QUAL())-1 {
+	if d.complaints.messageCount() < len(d.instance.QUAL())-1 {
 		return nil, false
 	}
 	d.logger.Info("dkgState: processing commits")
 
 	for _, peerComplaints := range d.complaints.data {
 		for _, c := range peerComplaints {
-			complaint := c.(*dkg.ComplaintCommits)
+			complaint := c.GetMsg().(*dkg.ComplaintCommits)
 			var msg = &types.DKGData{
 				Type:    types.DKGReconstructCommit,
 				RoundID: d.roundID,
@@ -740,7 +748,7 @@ func (d *DKGDealer) HandleDKGReconstructCommit(msg *types.DKGData) error {
 		}
 	}
 
-	d.reconstructCommits.add(msg.GetAddrString(), rc)
+	d.reconstructCommits.add(msg.GetAddrString(), &StoredMsg{msg: rc})
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -750,13 +758,13 @@ func (d *DKGDealer) HandleDKGReconstructCommit(msg *types.DKGData) error {
 }
 
 func (d *DKGDealer) ProcessReconstructCommits() (error, bool) {
-	if d.reconstructCommits.messagesCount < len(d.instance.QUAL())-1 {
+	if d.reconstructCommits.messageCount() < len(d.instance.QUAL())-1 {
 		return nil, false
 	}
 
 	for _, peerReconstructCommits := range d.reconstructCommits.data {
 		for _, reconstructCommit := range peerReconstructCommits {
-			rc := reconstructCommit.(*dkg.ReconstructCommits)
+			rc := reconstructCommit.GetMsg().(*dkg.ReconstructCommits)
 			if rc == nil {
 				continue
 			}
@@ -858,29 +866,106 @@ type Justification struct {
 
 // messageStore is used to store only required number of messages from every peer
 type messageStore struct {
-	// Common number of messages of the same type from peers
-	messagesCount int
-
 	// Max number of messages of the same type from one peer per round
 	maxMessagesFromPeer int
 
 	// Map which store messages. Key is a peer's address, value is data
-	data map[string][]interface{}
+	data map[string][]StoredInterface
+}
+
+func (ms *messageStore) messageCount() int {
+	var res int
+	for _, v := range ms.data {
+		res += len(v)
+	}
+	return res
 }
 
 func newMessageStore(n int) *messageStore {
 	return &messageStore{
 		maxMessagesFromPeer: n,
-		data:                make(map[string][]interface{}),
+		data:                make(map[string][]StoredInterface),
 	}
 }
 
-func (ms *messageStore) add(addr string, val interface{}) {
+type StoredMsg struct {
+	msg interface{}
+}
+
+type StoredInterface interface {
+	Equals(cmpMsg interface{}) bool
+	GetMsg() interface{}
+}
+
+var ErrWrongStoredType = fmt.Errorf("wrong stored type")
+
+func (sm *StoredMsg) GetMsg() interface{} {
+	return sm.msg
+}
+
+func (sm *StoredMsg) Equals(cmpMsg interface{}) bool {
+	switch cmpMsg.(type) {
+	case dkg.Deal:
+		val, ok := sm.msg.(*dkg.Deal)
+		if !ok {
+			panic(ErrWrongStoredType)
+		}
+		return val.Index == cmpMsg.(*dkg.Deal).Index
+	case dkg.Response:
+		val, ok := sm.msg.(*dkg.Response)
+		if !ok {
+			panic(ErrWrongStoredType)
+		}
+		cm := cmpMsg.(*dkg.Response)
+		return val.Index == cm.Index &&
+			val.Response.Index == cm.Response.Index
+	case dkg.Justification:
+		return false
+		val, ok := sm.msg.(*dkg.Justification)
+		if !ok {
+			panic(ErrWrongStoredType)
+		}
+		cm := cmpMsg.(*dkg.Justification)
+		return val.Index == cm.Index && val.Justification.Index == cm.Justification.Index
+	case dkg.SecretCommits:
+
+		return false
+		val, ok := sm.msg.(*dkg.SecretCommits)
+		if !ok {
+			panic(ErrWrongStoredType)
+		}
+		return val.Index == cmpMsg.(*dkg.SecretCommits).Index
+	case dkg.ComplaintCommits:
+		return false
+
+		val, ok := sm.msg.(*dkg.ComplaintCommits)
+		if !ok {
+			panic(ErrWrongStoredType)
+		}
+		return val.Index == cmpMsg.(*dkg.ComplaintCommits).Index
+	case dkg.ReconstructCommits:
+		return false
+		val, ok := sm.msg.(*dkg.ReconstructCommits)
+		if !ok {
+			panic(ErrWrongStoredType)
+		}
+		return val.Index == cmpMsg.(*dkg.ReconstructCommits).Index
+	}
+	return false
+}
+
+func (ms *messageStore) add(addr string, val StoredInterface) {
 	data := ms.data[addr]
 	if len(data) == ms.maxMessagesFromPeer {
 		return
 	}
+
+	for _, v := range data {
+		if v.Equals(val) {
+			return
+		}
+	}
+
 	data = append(data, val)
 	ms.data[addr] = data
-	ms.messagesCount++
 }

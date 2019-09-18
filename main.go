@@ -85,12 +85,12 @@ func main() {
 	if err := oc.StartRound(types.NewValidatorSet(MockValidators), pval, mockF, logger, 0); err != nil {
 		panic(fmt.Sprintf("failed to start round: %v", err))
 	}
-	tk := time.NewTicker(time.Millisecond * 1000)
+	tk := time.NewTicker(time.Millisecond * 2000)
 	for {
 		select {
 		case <-tk.C:
 			if err, ok := oc.ProcessBlock(); err != nil {
-				fmt.Println("pre-panic state:", fmt.Sprintf("failed to process block: %v", err))
+				panic(fmt.Sprintf("failed to process block: %v", err))
 			} else if ok {
 				fmt.Println("All instances finished DKG, O.K.")
 				return
