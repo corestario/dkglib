@@ -896,31 +896,25 @@ func (sm *StoredMsg) GetMsg() interface{} {
 
 func (sm *StoredMsg) Equals(cmpMsg interface{}) bool {
 	switch cmpMsg.(type) {
-	case dkg.Deal:
+	case *dkg.Deal:
 		val, ok := sm.msg.(*dkg.Deal)
 		if !ok {
 			panic(ErrWrongStoredType)
 		}
 		return val.Index == cmpMsg.(*dkg.Deal).Index
-
-	case dkg.Response:
+	case *dkg.Response:
 		val, ok := sm.msg.(*dkg.Response)
 		if !ok {
 			panic(ErrWrongStoredType)
 		}
 		cm := cmpMsg.(*dkg.Response)
 		return val.Index == cm.Index && val.Response.Index == cm.Response.Index
-
-	case dkg.Justification:
-		val, ok := sm.msg.(*dkg.Justification)
-		if !ok {
-			panic(ErrWrongStoredType)
-		}
-		cm := cmpMsg.(*dkg.Justification)
-		return val.Index == cm.Index && val.Justification.Index == cm.Justification.Index
-	case dkg.SecretCommits:
-	case dkg.ComplaintCommits:
-	case dkg.ReconstructCommits:
+	case *dkg.Justification:
+	case *dkg.SecretCommits:
+	case *dkg.ComplaintCommits:
+	case *dkg.ReconstructCommits:
+	default:
+		panic(ErrWrongStoredType)
 	}
 	return false
 }
@@ -933,7 +927,7 @@ func (ms *messageStore) add(addr string, val StoredInterface) {
 
 	for _, v := range data {
 		v := v
-		if v.Equals(val) {
+		if v.Equals(val.GetMsg()) {
 			return
 		}
 	}
