@@ -426,7 +426,8 @@ func (d *DKGDealer) ProcessResponses() (error, bool) {
 }
 
 func (d *DKGDealer) IsResponsesReady() bool {
-	return d.responses.messageCount() == d.responses.maxMessagesFromPeer
+	rn := d.validators.Size() - 1
+	return d.responses.messageCount() >= rn*rn
 }
 
 func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
@@ -454,16 +455,6 @@ func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
 }
 
 func (d *DKGDealer) GetJustifications() ([]*types.DKGData, error) {
-	fmt.Printf("GET RESPONSES %#+v:\n", d.responses)
-	for k, v := range d.responses.data {
-		k, v := k, v
-		fmt.Printf("map-string: %+v", k)
-		for _, val := range v {
-			val := val
-			fmt.Printf("%#+v\t", val)
-		}
-	}
-
 	var messages []*types.DKGData
 
 	for _, peerResponses := range d.responses.data {
@@ -911,16 +902,16 @@ func (sm *StoredMsg) Equals(cmpMsg interface{}) bool {
 			panic(ErrWrongStoredType)
 		}
 		return val.Index == cmpMsg.(*dkg.Deal).Index
+
 	case dkg.Response:
 		val, ok := sm.msg.(*dkg.Response)
 		if !ok {
 			panic(ErrWrongStoredType)
 		}
 		cm := cmpMsg.(*dkg.Response)
-		return val.Index == cm.Index &&
-			val.Response.Index == cm.Response.Index
+		return val.Index == cm.Index && val.Response.Index == cm.Response.Index
+
 	case dkg.Justification:
-		return false
 		val, ok := sm.msg.(*dkg.Justification)
 		if !ok {
 			panic(ErrWrongStoredType)
@@ -928,28 +919,8 @@ func (sm *StoredMsg) Equals(cmpMsg interface{}) bool {
 		cm := cmpMsg.(*dkg.Justification)
 		return val.Index == cm.Index && val.Justification.Index == cm.Justification.Index
 	case dkg.SecretCommits:
-
-		return false
-		val, ok := sm.msg.(*dkg.SecretCommits)
-		if !ok {
-			panic(ErrWrongStoredType)
-		}
-		return val.Index == cmpMsg.(*dkg.SecretCommits).Index
 	case dkg.ComplaintCommits:
-		return false
-
-		val, ok := sm.msg.(*dkg.ComplaintCommits)
-		if !ok {
-			panic(ErrWrongStoredType)
-		}
-		return val.Index == cmpMsg.(*dkg.ComplaintCommits).Index
 	case dkg.ReconstructCommits:
-		return false
-		val, ok := sm.msg.(*dkg.ReconstructCommits)
-		if !ok {
-			panic(ErrWrongStoredType)
-		}
-		return val.Index == cmpMsg.(*dkg.ReconstructCommits).Index
 	}
 	return false
 }
@@ -961,6 +932,7 @@ func (ms *messageStore) add(addr string, val StoredInterface) {
 	}
 
 	for _, v := range data {
+		v := v
 		if v.Equals(val) {
 			return
 		}
