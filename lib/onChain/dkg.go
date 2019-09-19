@@ -10,13 +10,12 @@ import (
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/dkglib/lib/alias"
+	"github.com/dgamingfoundation/dkglib/lib/dealer"
 	"github.com/dgamingfoundation/dkglib/lib/msgs"
 	"github.com/dgamingfoundation/dkglib/lib/types"
 	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
-
-	"github.com/dgamingfoundation/dkglib/lib/dealer"
 )
 
 type OnChainDKG struct {

@@ -10,6 +10,7 @@ import (
 	"sort"
 
 	"github.com/dgamingfoundation/dkglib/lib/alias"
+	"github.com/dgamingfoundation/dkglib/lib/blsShare"
 	"github.com/dgamingfoundation/dkglib/lib/types"
 	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
@@ -785,7 +786,7 @@ func (d *DKGDealer) GetVerifier() (types.Verifier, error) {
 
 	var (
 		masterPubKey = share.NewPubPoly(bn256.NewSuiteG2(), nil, distKeyShare.Commitments())
-		newShare     = &types.BLSShare{
+		newShare     = &blsShare.BLSShare{
 			ID:   d.participantID,
 			Pub:  &share.PubShare{I: d.participantID, V: d.pubKey},
 			Priv: distKeyShare.PriShare(),
@@ -793,7 +794,7 @@ func (d *DKGDealer) GetVerifier() (types.Verifier, error) {
 		t, n = (d.validators.Size() / 3) * 2, d.validators.Size()
 	)
 
-	return types.NewBLSVerifier(masterPubKey, newShare, t, n), nil
+	return blsShare.NewBLSVerifier(masterPubKey, newShare, t, n), nil
 }
 
 // VerifyMessage verify message by signature
