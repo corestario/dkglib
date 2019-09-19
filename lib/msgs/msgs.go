@@ -1,4 +1,4 @@
-package types
+package msgs
 
 import (
 	"encoding/json"

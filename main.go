@@ -18,7 +18,7 @@ import (
 	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
-	"github.com/dgamingfoundation/dkglib/lib"
+	onChain "github.com/dgamingfoundation/dkglib/lib/onChain"
 	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
 	types "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/libs/events"
@@ -81,7 +81,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	oc := lib.NewOnChainDKG(cli, txBldr)
+	oc := onChain.NewOnChainDKG(cli, txBldr)
 	if err := oc.StartRound(types.NewValidatorSet(MockValidators), pval, mockF, logger, 0); err != nil {
 		panic(fmt.Sprintf("failed to start round: %v", err))
 	}
