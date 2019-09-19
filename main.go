@@ -26,10 +26,11 @@ import (
 )
 
 const (
-	nodeEndpoint  = "tcp://localhost:26657" // TODO: get this from command line args
-	chainID       = "rchain"
-	validatorName = "validator"
-	passphrase    = "12345678"
+	nodeEndpoint        = "tcp://localhost:26657" // TODO: get this from command line args
+	chainID             = "rchain"
+	validatorName       = "validator"
+	passphrase          = "12345678"
+	ProcessBlockTimeout = 2200
 )
 
 var cliHome = "~/.rcli" // TODO: get this from command line args
@@ -85,12 +86,12 @@ func main() {
 	if err := oc.StartRound(types.NewValidatorSet(MockValidators), pval, mockF, logger, 0); err != nil {
 		panic(fmt.Sprintf("failed to start round: %v", err))
 	}
-	tk := time.NewTicker(time.Millisecond * 2000)
+	tk := time.NewTicker(time.Millisecond * ProcessBlockTimeout)
 	for {
 		select {
 		case <-tk.C:
 			if err, ok := oc.ProcessBlock(); err != nil {
-				panic(fmt.Sprintf("failed to process block: %v", err))
+				fmt.Printf("failed to process block: %v\n", err)
 			} else if ok {
 				fmt.Println("All instances finished DKG, O.K.")
 				return
@@ -98,11 +99,6 @@ func main() {
 		}
 	}
 
-}
-
-func getValidatorEnv() (*types.Validator, types.PrivValidator) {
-	pv := types.NewMockPV()
-	return types.NewValidator(pv.GetPubKey(), 1), pv
 }
 
 func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {

@@ -69,7 +69,7 @@ type DKGDealer struct {
 	transitions []transition
 
 	pubKeys            PKStore
-	deals              map[string]*dkg.Deal
+	deals              *messageStore
 	responses          *messageStore
 	justifications     *messageStore
 	commits            *messageStore
@@ -98,8 +98,48 @@ func (ds DealerState) GetRoundID() int { return ds.roundID }
 
 type DKGDealerConstructor func(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*types.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer
 
+type StoredMsg struct {
+	msg interface{}
+}
+
+type StoredInterface interface {
+	Equals(cmpMsg interface{}) bool
+	GetMsg() interface{}
+}
+
+var ErrWrongStoredType = fmt.Errorf("wrong stored type")
+
+func (sm *StoredMsg) GetMsg() interface{} {
+	return sm.msg
+}
+
+func (sm *StoredMsg) Equals(cmpMsg interface{}) bool {
+	switch cmpMsg.(type) {
+	case *dkg.Deal:
+		val, ok := sm.msg.(*dkg.Deal)
+		if !ok {
+			panic(ErrWrongStoredType)
+		}
+		return val.Index == cmpMsg.(*dkg.Deal).Index
+	case *dkg.Response:
+		val, ok := sm.msg.(*dkg.Response)
+		if !ok {
+			panic(ErrWrongStoredType)
+		}
+		cm := cmpMsg.(*dkg.Response)
+		return val.Index == cm.Index && val.Response.Index == cm.Response.Index
+	case *dkg.Justification:
+	case *dkg.SecretCommits:
+	case *dkg.ComplaintCommits:
+	case *dkg.ReconstructCommits:
+	default:
+		panic(ErrWrongStoredType)
+	}
+	return false
+}
+
 func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*types.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
-	responsesNum := validators.Size() - 1
+	msgNum := validators.Size() - 1
 	return &DKGDealer{
 		DealerState: DealerState{
 			validators: validators,
@@ -112,9 +152,9 @@ func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, se
 		suiteG1:    bn256.NewSuiteG1(),
 		suiteG2:    bn256.NewSuiteG2(),
 
-		deals:              make(map[string]*dkg.Deal),
-		responses:          newMessageStore(responsesNum),
-		justifications:     newMessageStore(responsesNum * responsesNum),
+		deals:              newMessageStore(msgNum),
+		responses:          newMessageStore(msgNum),
+		justifications:     newMessageStore(msgNum * msgNum),
 		commits:            newMessageStore(1),
 		complaints:         newMessageStore(1),
 		reconstructCommits: newMessageStore(1),
@@ -311,11 +351,11 @@ func (d *DKGDealer) HandleDKGDeal(msg *types.DKGData) error {
 	}
 
 	d.logger.Info("dkgState: deal is intended for us, storing")
-	if _, exists := d.deals[msg.GetAddrString()]; exists {
+	if _, exists := d.deals.getFirstMsgFromAddr(msg.GetAddrString()); exists {
 		return nil
 	}
 
-	d.deals[msg.GetAddrString()] = deal
+	d.deals.add(msg.GetAddrString(), &StoredMsg{msg: deal})
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
 	}
@@ -345,14 +385,22 @@ func (d *DKGDealer) ProcessDeals() (error, bool) {
 }
 
 func (d *DKGDealer) IsDealsReady() bool {
-	return len(d.deals) >= d.validators.Size()-1
+	return d.deals.messageCount() >= d.validators.Size()-1
 }
 
 func (d *DKGDealer) GetResponses() ([]*types.DKGData, error) {
 	var messages []*types.DKGData
 
 	// Each deal produces a response for the deal's issuer (that makes N - 1 responses).
-	for _, deal := range d.deals {
+	for _, dd := range d.deals.data {
+		dd := dd
+		if len(dd) == 0 {
+			continue
+		}
+		deal, ok := dd[0].GetMsg().(*dkg.Deal)
+		if !ok {
+			continue
+		}
 		resp, err := d.instance.ProcessDeal(deal)
 		if err != nil {
 			return messages, fmt.Errorf("failed to ProcessDeal: %v", err)
@@ -872,51 +920,22 @@ func (ms *messageStore) messageCount() int {
 	return res
 }
 
+func (ms *messageStore) getFirstMsgFromAddr(addr string) (StoredInterface, bool) {
+	val, ok := ms.data[addr]
+	if !ok {
+		return nil, false
+	}
+	if len(val) == 0 {
+		return nil, false
+	}
+	return val[0], true
+}
+
 func newMessageStore(n int) *messageStore {
 	return &messageStore{
 		maxMessagesFromPeer: n,
 		data:                make(map[string][]StoredInterface),
 	}
-}
-
-type StoredMsg struct {
-	msg interface{}
-}
-
-type StoredInterface interface {
-	Equals(cmpMsg interface{}) bool
-	GetMsg() interface{}
-}
-
-var ErrWrongStoredType = fmt.Errorf("wrong stored type")
-
-func (sm *StoredMsg) GetMsg() interface{} {
-	return sm.msg
-}
-
-func (sm *StoredMsg) Equals(cmpMsg interface{}) bool {
-	switch cmpMsg.(type) {
-	case *dkg.Deal:
-		val, ok := sm.msg.(*dkg.Deal)
-		if !ok {
-			panic(ErrWrongStoredType)
-		}
-		return val.Index == cmpMsg.(*dkg.Deal).Index
-	case *dkg.Response:
-		val, ok := sm.msg.(*dkg.Response)
-		if !ok {
-			panic(ErrWrongStoredType)
-		}
-		cm := cmpMsg.(*dkg.Response)
-		return val.Index == cm.Index && val.Response.Index == cm.Response.Index
-	case *dkg.Justification:
-	case *dkg.SecretCommits:
-	case *dkg.ComplaintCommits:
-	case *dkg.ReconstructCommits:
-	default:
-		panic(ErrWrongStoredType)
-	}
-	return false
 }
 
 func (ms *messageStore) add(addr string, val StoredInterface) {
