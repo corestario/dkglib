@@ -2,7 +2,6 @@ package types
 
 import (
 	"github.com/dgamingfoundation/dkglib/lib/blsShare"
-	types "github.com/tendermint/tendermint/alias"
 )
 
 //DKG events
@@ -39,6 +38,6 @@ func (m *MockVerifier) VerifyRandomShare(addr string, prevRandomData, currRandom
 func (m *MockVerifier) VerifyRandomData(prevRandomData, currRandomData []byte) error {
 	return nil
 }
-func (m *MockVerifier) Recover(msg []byte, precommits []*types.Vote) ([]byte, error) {
+func (m *MockVerifier) Recover(msg []byte, precommits []blsShare.BLSSigner) ([]byte, error) {
 	return []byte{}, nil
 }

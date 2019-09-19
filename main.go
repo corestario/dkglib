@@ -18,8 +18,8 @@ import (
 	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
+	msgs "github.com/dgamingfoundation/dkglib/lib/msgs"
 	onChain "github.com/dgamingfoundation/dkglib/lib/onChain"
-	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
 	types "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
@@ -48,7 +48,7 @@ func MakeCodec() *codec.Codec {
 	var cdc = codec.New()
 	auth.RegisterCodec(cdc)
 	bank.RegisterCodec(cdc)
-	cdc.RegisterConcrete(dkgtypes.MsgSendDKGData{}, "randapp/SendDKGData", nil)
+	cdc.RegisterConcrete(msgs.MsgSendDKGData{}, "randapp/SendDKGData", nil)
 	staking.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
