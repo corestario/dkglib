@@ -3,6 +3,7 @@ module github.com/dgamingfoundation/dkglib
 go 1.12
 
 require (
+	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/cosmos/cosmos-sdk v0.28.2-0.20190827131926-5aacf454e1b6
 	github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190904115518-54b452a4037e
 	github.com/pkg/errors v0.8.1

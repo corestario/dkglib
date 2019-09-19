@@ -1,4 +1,4 @@
-package lib
+package dealer
 
 import (
 	"bytes"
@@ -53,7 +53,7 @@ type Dealer interface {
 	ProcessReconstructCommits() (err error, ready bool)
 	GetVerifier() (types.Verifier, error)
 	SendMsgCb(*alias.DKGData) error
-	VerifyMessage(msg DKGDataMessage) error
+	VerifyMessage(msg types.DKGDataMessage) error
 }
 
 type DKGDealer struct {
@@ -775,7 +775,7 @@ func (d *DKGDealer) ProcessReconstructCommits() (error, bool) {
 
 func (d *DKGDealer) GetVerifier() (types.Verifier, error) {
 	if d.instance == nil || !d.instance.Finished() {
-		return nil, ErrDKGVerifierNotReady
+		return nil, types.ErrDKGVerifierNotReady
 	}
 
 	distKeyShare, err := d.instance.DistKeyShare()
@@ -797,7 +797,7 @@ func (d *DKGDealer) GetVerifier() (types.Verifier, error) {
 }
 
 // VerifyMessage verify message by signature
-func (d *DKGDealer) VerifyMessage(msg DKGDataMessage) error {
+func (d *DKGDealer) VerifyMessage(msg types.DKGDataMessage) error {
 	var (
 		signBytes []byte
 	)

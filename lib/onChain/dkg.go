@@ -1,9 +1,8 @@
-package lib
+package onChain
 
 import (
 	"bytes"
 	"encoding/gob"
-	"errors"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -15,28 +14,14 @@ import (
 	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
+
+	"github.com/dgamingfoundation/dkglib/lib/dealer"
 )
-
-var (
-	ErrDKGVerifierNotReady = errors.New("verifier not ready yet")
-)
-
-type DKGDataMessage struct {
-	Data *alias.DKGData
-}
-
-func (m *DKGDataMessage) ValidateBasic() error {
-	return nil
-}
-
-func (m *DKGDataMessage) String() string {
-	return fmt.Sprintf("[Proposal %+v]", m.Data)
-}
 
 type OnChainDKG struct {
 	cli       *context.Context
 	txBldr    *authtxb.TxBuilder
-	dealer    Dealer
+	dealer    dealer.Dealer
 	typesList []alias.DKGDataType
 }
 
@@ -89,7 +74,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 		}
 	}
 
-	if _, err := m.dealer.GetVerifier(); err == ErrDKGVerifierNotReady {
+	if _, err := m.dealer.GetVerifier(); err == types.ErrDKGVerifierNotReady {
 		return nil, false
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
@@ -103,7 +88,7 @@ func (m *OnChainDKG) StartRound(
 	eventFirer events.Fireable,
 	logger log.Logger,
 	startRound int) error {
-	m.dealer = NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
+	m.dealer = dealer.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
 	if err := m.dealer.Start(); err != nil {
 		return fmt.Errorf("failed to start dealer: %v", err)
 	}
