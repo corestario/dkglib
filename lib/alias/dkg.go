@@ -49,8 +49,8 @@ func (m DKGData) SignBytes(string) []byte {
 	return sb
 }
 
-func (m *DKGData) SetSignature([]byte) {
-	return
+func (m *DKGData) SetSignature(sig []byte) {
+	m.Signature = sig
 }
 
 func (m *DKGData) GetAddrString() string {

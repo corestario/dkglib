@@ -125,7 +125,6 @@ func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, se
 }
 
 func (d *DKGDealer) Start() error {
-	d.roundID++
 	d.secKey = d.suiteG2.Scalar().Pick(d.suiteG2.RandomStream())
 	d.pubKey = d.suiteG2.Point().Mul(d.secKey, nil)
 

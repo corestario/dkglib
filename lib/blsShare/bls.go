@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"sync"
 
 	"go.dedis.ch/kyber/v3"
@@ -267,7 +268,7 @@ func (m *BLSVerifier) Recover(msg []byte, precommits []BLSSigner) ([]byte, error
 	var sigs [][]byte
 	for _, precommit := range precommits {
 		// Nil votes do exist, keep that in mind.
-		if precommit == nil || len(precommit.GetHash()) == 0 || len(precommit.GetBLSSignature()) == 0 {
+		if reflect.ValueOf(precommit).IsNil() || precommit == nil || len(precommit.GetHash()) == 0 || len(precommit.GetBLSSignature()) == 0 {
 			continue
 		}
 
