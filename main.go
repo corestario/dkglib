@@ -1,117 +1,135 @@
 package main
 
 import (
-	"dgamingfoundation/dkglib/lib"
+	"flag"
 	"fmt"
 	"os"
+	"os/user"
 	"path"
-	"sync"
+	"strconv"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/context"
-	"github.com/cosmos/cosmos-sdk/client/utils"
+	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtxb "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
-	"github.com/dgamingfoundation/randapp/util"
-	"github.com/spf13/viper"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	"github.com/cosmos/cosmos-sdk/x/bank"
+	"github.com/cosmos/cosmos-sdk/x/staking"
+	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
+	"github.com/dgamingfoundation/cosmos-utils/client/context"
+	"github.com/dgamingfoundation/cosmos-utils/client/utils"
+	msgs "github.com/dgamingfoundation/dkglib/lib/msgs"
+	onChain "github.com/dgamingfoundation/dkglib/lib/onChain"
+	types "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/types"
 )
 
 const (
-	cliHome      = "/Users/andrei/.rcli"   // TODO: get this from command line args
-	nodeEndpoint = "tcp://localhost:26657" // TODO: get this from command line args
+	nodeEndpoint  = "tcp://localhost:26657" // TODO: get this from command line args
+	chainID       = "rchain"
+	validatorName = "validator"
+	passphrase    = "12345678"
 )
 
+var cliHome = "~/.rcli" // TODO: get this from command line args
+
+func init() {
+	populateMocks()
+	usr, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+
+	cliHome = path.Join(usr.HomeDir, ".rcli")
+}
+
+func MakeCodec() *codec.Codec {
+	var cdc = codec.New()
+	auth.RegisterCodec(cdc)
+	bank.RegisterCodec(cdc)
+	cdc.RegisterConcrete(msgs.MsgSendDKGData{}, "randapp/SendDKGData", nil)
+	staking.RegisterCodec(cdc)
+	sdk.RegisterCodec(cdc)
+	codec.RegisterCrypto(cdc)
+	return cdc
+}
+
 func main() {
+	numPtr := flag.String("num", "0", "a string number")
+	flag.Parse()
+
 	var (
 		mockF  = &MockFirer{}
 		logger = log.NewTMLogger(os.Stdout)
-		vals   []*types.Validator
-		pvals  []types.PrivValidator
 	)
-	for i := 0; i < 1; i++ {
-		v, pv := getValidatorEnv()
-		vals, pvals = append(vals, v), append(pvals, pv)
 
+	numStr := "0"
+	if numPtr != nil {
+		numStr = *numPtr
 	}
 
-	wg := &sync.WaitGroup{}
-	for _, pval := range pvals {
-		cli, txBldr, err := getTools("validator0")
-		if err != nil {
-			fmt.Printf("failed to get a randapp client: %v", err)
-			os.Exit(1)
-		}
+	num, err := strconv.Atoi(numStr)
+	if err != nil {
+		panic(err)
+	}
+	pval := MockPVs[num]
 
-		wg.Add(1)
+	cli, txBldr, err := getTools(numStr)
+	if err != nil {
+		fmt.Printf("failed to get a randapp client: %v", err)
+		os.Exit(1)
+	}
 
-		go func(pval types.PrivValidator) {
-			oc := lib.NewOnChainDKG(cli, txBldr)
-			if err := oc.StartRound(types.NewValidatorSet(vals), pval, mockF, logger, 0); err != nil {
+	oc := onChain.NewOnChainDKG(cli, txBldr)
+	if err := oc.StartRound(types.NewValidatorSet(MockValidators), pval, mockF, logger, 0); err != nil {
+		panic(fmt.Sprintf("failed to start round: %v", err))
+	}
+	tk := time.NewTicker(time.Millisecond * 3000)
+	for {
+		select {
+		case <-tk.C:
+			if err, ok := oc.ProcessBlock(); err != nil {
 				panic(fmt.Sprintf("failed to start round: %v", err))
-			}
+			} else if ok {
+				fmt.Println("All instances finished DKG, O.K.")
 
-			tk := time.NewTicker(time.Second)
-			for {
-				select {
-				case <-tk.C:
-					if err, ok := oc.ProcessBlock(); err != nil {
-						panic(fmt.Sprintf("failed to start round: %v", err))
-					} else if ok {
-						wg.Done()
-						return
-					}
-				}
+				return
 			}
-		}(pval)
+		}
 	}
 
-	wg.Wait()
-	fmt.Println("All instances finished DKG, O.K.")
 }
 
-func getValidatorEnv() (*types.Validator, types.PrivValidator) {
-	pv := types.NewMockPV()
-	return types.NewValidator(pv.GetPubKey(), 1), pv
-}
-
-func getTools(validatorName string) (*context.CLIContext, *authtxb.TxBuilder, error) {
-	if err := initConfig(validatorName); err != nil {
-		return nil, nil, fmt.Errorf("could not read config: %v", err)
+func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {
+	cdc := MakeCodec()
+	ctx, err := context.NewContext(chainID, nodeEndpoint, cliHome+vName)
+	if err != nil {
+		return nil, nil, err
 	}
-	cdc := util.MakeCodec()
-	cliCtx := context.NewCLIContext().WithCodec(cdc)
-	txBldr := authtxb.NewTxBuilderFromCLI().WithTxEncoder(utils.GetTxEncoder(cdc))
-	if err := cliCtx.EnsureAccountExists(); err != nil {
+
+	ctx = ctx.WithCodec(cdc)
+	addr, _, err := context.GetFromFields(validatorName+vName, cliHome+vName)
+	if err != nil {
+		return nil, nil, err
+	}
+	ctx = ctx.WithFromName(validatorName + vName).WithPassphrase(passphrase).WithFromAddress(addr).WithFrom(validatorName + vName)
+
+	accRetriever := auth.NewAccountRetriever(ctx)
+	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(addr)
+	if err != nil {
+		return nil, nil, err
+	}
+	kb, err := keys.NewKeyBaseFromDir(ctx.Home)
+	if err != nil {
+		return nil, nil, err
+	}
+	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, accSequence, 400000, 0.0, false, ctx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
+	if err := ctx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}
 
-	return &cliCtx, &txBldr, nil
-}
-
-func initConfig(validatorName string) error {
-	viper.Set(client.FlagNode, nodeEndpoint)
-	viper.Set(client.FlagFrom, validatorName)
-	viper.Set("home", "/Users/andrei/.rd")
-	config := sdk.GetConfig()
-	config.SetBech32PrefixForAccount(sdk.Bech32PrefixAccAddr, sdk.Bech32PrefixAccPub)
-	config.SetBech32PrefixForValidator(sdk.Bech32PrefixValAddr, sdk.Bech32PrefixValPub)
-	config.SetBech32PrefixForConsensusNode(sdk.Bech32PrefixConsAddr, sdk.Bech32PrefixConsPub)
-	config.Seal()
-
-	cfgFile := path.Join(cliHome, "config", "config.toml")
-	if _, err := os.Stat(cfgFile); err == nil {
-		viper.SetConfigFile(cfgFile)
-
-		if err := viper.ReadInConfig(); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return &ctx, &txBldr, nil
 }
 
 type MockFirer struct{}

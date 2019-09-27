@@ -1,1 +1,6 @@
 .idea/
+
+go.sum
+dkglib
+vendor
+

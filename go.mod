@@ -1,15 +1,16 @@
-module dgamingfoundation/dkglib
+module github.com/dgamingfoundation/dkglib
 
 go 1.12
 
 require (
-	github.com/cosmos/cosmos-sdk v0.34.7
-	github.com/dgamingfoundation/randapp v0.0.0-00010101000000-000000000000
-	github.com/tendermint/tendermint v0.31.6
+	github.com/cosmos/cosmos-sdk v0.28.2-0.20190827131926-5aacf454e1b6
+	github.com/dgamingfoundation/cosmos-utils/client v0.0.0-20190904115518-54b452a4037e
+	github.com/pkg/errors v0.8.1
+	github.com/tendermint/go-amino v0.15.0
+	github.com/tendermint/tendermint v0.32.3
+	go.dedis.ch/kyber/v3 v3.0.4
 )
-
-replace github.com/dgamingfoundation/randapp => /Users/andrei/Documents/goprojects/randapp
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 
-replace github.com/tendermint/tendermint => /Users/andrei/Documents/goprojects/tendermint
+replace github.com/tendermint/tendermint => github.com/dgamingfoundation/tendermint v0.27.3-dkg
