@@ -1,4 +1,4 @@
-package consensus
+package offChain
 
 import (
 	"encoding/hex"
@@ -17,10 +17,6 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 )
 
-// TODO: implement round timeouts.
-// TODO: implement protection from OOM (restrict maximum possible number of active rounds).
-// TODO: implement tests.
-
 const (
 	BlocksAhead = 20 // Agree to swap verifier after around this number of blocks.
 	//DefaultDKGNumBlocks sets how often node should make DKG(in blocks)
@@ -31,7 +27,7 @@ var (
 	ErrDKGVerifierNotReady = errors.New("verifier not ready yet")
 )
 
-type dkgState struct {
+type OffChainDKG struct {
 	mtx sync.RWMutex
 
 	verifier     dkgtypes.Verifier
@@ -50,8 +46,8 @@ type dkgState struct {
 	evsw   events.EventSwitch
 }
 
-func NewDKG(evsw events.EventSwitch, options ...DKGOption) *dkgState {
-	dkg := &dkgState{
+func NewOffChainDKG(evsw events.EventSwitch, options ...DKGOption) *OffChainDKG {
+	dkg := &OffChainDKG{
 		evsw:             evsw,
 		dkgMsgQueue:      make(chan *dkgtypes.DKGDataMessage, alias.MsgQueueSize),
 		dkgRoundToDealer: make(map[int]dkglib.Dealer),
@@ -71,26 +67,26 @@ func NewDKG(evsw events.EventSwitch, options ...DKGOption) *dkgState {
 }
 
 // DKGOption sets an optional parameter on the dkgState.
-type DKGOption func(*dkgState)
+type DKGOption func(*OffChainDKG)
 
 func WithVerifier(verifier dkgtypes.Verifier) DKGOption {
-	return func(d *dkgState) { d.verifier = verifier }
+	return func(d *OffChainDKG) { d.verifier = verifier }
 }
 
 func WithDKGNumBlocks(numBlocks int64) DKGOption {
-	return func(d *dkgState) { d.dkgNumBlocks = numBlocks }
+	return func(d *OffChainDKG) { d.dkgNumBlocks = numBlocks }
 }
 
 func WithLogger(l log.Logger) DKGOption {
-	return func(d *dkgState) { d.Logger = l }
+	return func(d *OffChainDKG) { d.Logger = l }
 }
 
 func WithPVKey(pv alias.PrivValidator) DKGOption {
-	return func(d *dkgState) { d.privValidator = pv }
+	return func(d *OffChainDKG) { d.privValidator = pv }
 }
 
 func WithDKGDealerConstructor(newDealer dkglib.DKGDealerConstructor) DKGOption {
-	return func(d *dkgState) {
+	return func(d *OffChainDKG) {
 		if newDealer == nil {
 			return
 		}
@@ -98,15 +94,9 @@ func WithDKGDealerConstructor(newDealer dkglib.DKGDealerConstructor) DKGOption {
 	}
 }
 
-func (dkg *dkgState) HandleDKGShare(dkgMsg *dkgtypes.DKGDataMessage, height int64, validators *alias.ValidatorSet, pubKey crypto.PubKey) {
+func (dkg *OffChainDKG) HandleDKGShare(dkgMsg *dkgtypes.DKGDataMessage, height int64, validators *alias.ValidatorSet, pubKey crypto.PubKey) {
 	dkg.mtx.Lock()
 	defer dkg.mtx.Unlock()
-
-	//dkgMsg, ok := mi.Msg.(*dkgtypes.DKGDataMessage)
-	//if !ok {
-	//	dkg.Logger.Info("dkgState: rejecting message (unknown type)", reflect.TypeOf(dkgMsg).Name())
-	//	return
-	//}
 
 	var msg = dkgMsg.Data
 	dealer, ok := dkg.dkgRoundToDealer[msg.RoundID]
@@ -185,7 +175,7 @@ func (dkg *dkgState) HandleDKGShare(dkgMsg *dkgtypes.DKGDataMessage, height int6
 	dkg.evsw.FireEvent(dkgtypes.EventDKGSuccessful, dkg.changeHeight)
 }
 
-func (dkg *dkgState) startDKGRound(validators *alias.ValidatorSet) error {
+func (dkg *OffChainDKG) startDKGRound(validators *alias.ValidatorSet) error {
 	dkg.dkgRoundID++
 	dkg.Logger.Info("dkgState: starting round", "round_id", dkg.dkgRoundID)
 	_, ok := dkg.dkgRoundToDealer[dkg.dkgRoundID]
@@ -199,7 +189,7 @@ func (dkg *dkgState) startDKGRound(validators *alias.ValidatorSet) error {
 	return nil
 }
 
-func (dkg *dkgState) sendDKGMessage(msg *dkgalias.DKGData) {
+func (dkg *OffChainDKG) sendDKGMessage(msg *dkgalias.DKGData) {
 	// Broadcast to peers. This will not lead to processing the message
 	// on the sending node, we need to send it manually (see below).
 	dkg.evsw.FireEvent(dkgtypes.EventDKGData, msg)
@@ -212,7 +202,7 @@ func (dkg *dkgState) sendDKGMessage(msg *dkgalias.DKGData) {
 	}
 }
 
-func (dkg *dkgState) sendSignedDKGMessage(data *dkgalias.DKGData) error {
+func (dkg *OffChainDKG) sendSignedDKGMessage(data *dkgalias.DKGData) error {
 	if err := dkg.Sign(data); err != nil {
 		return err
 	}
@@ -222,18 +212,21 @@ func (dkg *dkgState) sendSignedDKGMessage(data *dkgalias.DKGData) error {
 }
 
 // Sign sign message by dealer's secret key
-func (dkg *dkgState) Sign(data *dkgalias.DKGData) error {
-	dkg.privValidator.SignData("rchain", data)
+func (dkg *OffChainDKG) Sign(data *dkgalias.DKGData) error {
+	// TODO: do something with this string constant.
+	if err := dkg.privValidator.SignData("rchain", data); err != nil {
+		return fmt.Errorf("failed to sign data: %v", err)
+	}
 	return nil
 }
 
-func (dkg *dkgState) slashDKGLosers(losers []*alias.Validator) {
+func (dkg *OffChainDKG) slashDKGLosers(losers []*alias.Validator) {
 	for _, loser := range losers {
 		dkg.Logger.Info("Slashing validator", loser.Address.String())
 	}
 }
 
-func (dkg *dkgState) CheckDKGTime(height int64, validators *alias.ValidatorSet) {
+func (dkg *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet) {
 	if dkg.changeHeight == height {
 		dkg.Logger.Info("dkgState: time to update verifier", dkg.changeHeight, height)
 		dkg.verifier, dkg.nextVerifier = dkg.nextVerifier, nil
@@ -248,15 +241,15 @@ func (dkg *dkgState) CheckDKGTime(height int64, validators *alias.ValidatorSet) 
 	}
 }
 
-func (dkg *dkgState) MsgQueue() chan *dkgtypes.DKGDataMessage {
+func (dkg *OffChainDKG) MsgQueue() chan *dkgtypes.DKGDataMessage {
 	return dkg.dkgMsgQueue
 }
 
-func (dkg *dkgState) Verifier() dkgtypes.Verifier {
+func (dkg *OffChainDKG) Verifier() dkgtypes.Verifier {
 	return dkg.verifier
 }
 
-func (dkg *dkgState) SetVerifier(v dkgtypes.Verifier) {
+func (dkg *OffChainDKG) SetVerifier(v dkgtypes.Verifier) {
 	dkg.verifier = v
 }
 
