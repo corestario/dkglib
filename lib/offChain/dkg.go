@@ -24,7 +24,7 @@ const (
 )
 
 var (
-	ErrDKGVerifierNotReady = errors.New("verifier not ready yet")
+	ErrVerifierNotReady = errors.New("verifier not ready yet")
 )
 
 type OffChainDKG struct {
@@ -94,7 +94,12 @@ func WithDKGDealerConstructor(newDealer dkglib.DKGDealerConstructor) DKGOption {
 	}
 }
 
-func (m *OffChainDKG) HandleOffChainShare(dkgMsg *dkgtypes.DKGDataMessage, height int64, validators *alias.ValidatorSet, pubKey crypto.PubKey) {
+func (m *OffChainDKG) HandleOffChainShare(
+	dkgMsg *dkgtypes.DKGDataMessage,
+	height int64,
+	validators *alias.ValidatorSet,
+	pubKey crypto.PubKey,
+) (switchToOnChain bool) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -110,13 +115,13 @@ func (m *OffChainDKG) HandleOffChainShare(dkgMsg *dkgtypes.DKGDataMessage, heigh
 	}
 	if dealer == nil {
 		m.Logger.Info("dkgState: received message for inactive round:", "round", msg.RoundID)
-		return
+		return false
 	}
 	m.Logger.Info("dkgState: received message with signature:", "signature", hex.EncodeToString(dkgMsg.Data.Signature))
 
 	if err := dealer.VerifyMessage(*dkgMsg); err != nil {
 		m.Logger.Info("DKG: can't verify message:", "error", err.Error())
-		return
+		return false
 	}
 	m.Logger.Info("DKG: message verified")
 
@@ -150,19 +155,19 @@ func (m *OffChainDKG) HandleOffChainShare(dkgMsg *dkgtypes.DKGDataMessage, heigh
 		m.Logger.Error("dkgState: failed to handle message", "error", err, "type", msg.Type)
 		m.slashLosers(dealer.GetLosers())
 		m.dkgRoundToDealer[msg.RoundID] = nil
-		return
+		return false
 	}
 
 	verifier, err := dealer.GetVerifier()
-	if err == dkgtypes.ErrDKGVerifierNotReady {
+	if err == ErrVerifierNotReady {
 		m.Logger.Debug("dkgState: verifier not ready")
-		return
+		return false
 	}
 	if err != nil {
 		m.Logger.Error("dkgState: verifier should be ready, but it's not ready:", err)
 		m.slashLosers(dealer.GetLosers())
 		m.dkgRoundToDealer[msg.RoundID] = nil
-		return
+		return true
 	}
 	m.Logger.Info("dkgState: verifier is ready, killing older rounds")
 	for roundID := range m.dkgRoundToDealer {
@@ -173,6 +178,8 @@ func (m *OffChainDKG) HandleOffChainShare(dkgMsg *dkgtypes.DKGDataMessage, heigh
 	m.nextVerifier = verifier
 	m.changeHeight = (height + BlocksAhead) - ((height + BlocksAhead) % 5)
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
+
+	return false
 }
 
 func (m *OffChainDKG) startRound(validators *alias.ValidatorSet) error {

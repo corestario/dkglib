@@ -37,15 +37,27 @@ type DKGBasic struct {
 	onChain     *onChain.OnChainDKG
 }
 
-func NewDKGBasic(evsw events.EventSwitch, cliCtx *context.Context, txBldr *authtypes.TxBuilder, options ...offChain.DKGOption) DKG {
+func NewDKGBasic(
+	evsw events.EventSwitch,
+	cliCtx *context.Context,
+	txBldr *authtypes.TxBuilder,
+	options ...offChain.DKGOption,
+) DKG {
 	return &DKGBasic{
 		offChainDKG: offChain.NewOffChainDKG(evsw, options...),
 		onChain:     onChain.NewOnChainDKG(cliCtx, txBldr),
 	}
 }
 
-func (m *DKGBasic) HandleOffChainShare(dkgMsg *DKGDataMessage, height int64, validators *types.ValidatorSet, pubKey crypto.PubKey) {
-	m.offChainDKG.HandleOffChainShare(dkgMsg, height, validators, pubKey)
+func (m *DKGBasic) HandleOffChainShare(
+	dkgMsg *DKGDataMessage,
+	height int64,
+	validators *types.ValidatorSet,
+	pubKey crypto.PubKey,
+) {
+	if switchToOnChain := m.offChainDKG.HandleOffChainShare(dkgMsg, height, validators, pubKey); switchToOnChain {
+		// TODO: implement.
+	}
 }
 
 func (m *DKGBasic) CheckDKGTime(height int64, validators *types.ValidatorSet) {
