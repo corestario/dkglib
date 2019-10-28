@@ -44,8 +44,8 @@ func NewDKGBasic(evsw events.EventSwitch, cliCtx *context.Context, txBldr *autht
 	}
 }
 
-func (m *DKGBasic) HandleDKGShare(dkgMsg *DKGDataMessage, height int64, validators *types.ValidatorSet, pubKey crypto.PubKey) {
-	m.offChainDKG.HandleDKGShare(dkgMsg, height, validators, pubKey)
+func (m *DKGBasic) HandleOffChainShare(dkgMsg *DKGDataMessage, height int64, validators *types.ValidatorSet, pubKey crypto.PubKey) {
+	m.offChainDKG.HandleOffChainShare(dkgMsg, height, validators, pubKey)
 }
 
 func (m *DKGBasic) CheckDKGTime(height int64, validators *types.ValidatorSet) {

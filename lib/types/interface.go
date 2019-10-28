@@ -6,7 +6,7 @@ import (
 )
 
 type DKG interface {
-	HandleDKGShare(dkgMsg *DKGDataMessage, height int64, validators *types.ValidatorSet, pubKey crypto.PubKey)
+	HandleOffChainShare(dkgMsg *DKGDataMessage, height int64, validators *types.ValidatorSet, pubKey crypto.PubKey)
 	CheckDKGTime(height int64, validators *types.ValidatorSet)
 	SetVerifier(verifier Verifier)
 	Verifier() Verifier
