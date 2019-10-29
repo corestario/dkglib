@@ -80,6 +80,7 @@ func (m *DKGMockDontSendOneCommit) GetCommits() (*dkg.SecretCommits, error) {
 	commits, err := m.Dealer.GetCommits()
 
 	// remove one response message
+	commits.Commitments[len(commits.Commitments)-1] = nil
 	commits.Commitments = commits.Commitments[:len(commits.Commitments)-1]
 
 	return commits, err

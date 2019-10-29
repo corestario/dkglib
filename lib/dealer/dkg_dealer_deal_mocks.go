@@ -68,6 +68,7 @@ func (m *DKGMockDontSendOneDeal) GetDeals() ([]*alias.DKGData, error) {
 	}
 
 	// remove one deal message
+	deals[len(deals)-1] = nil
 	deals = deals[:len(deals)-1]
 
 	return deals, err

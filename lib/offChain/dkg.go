@@ -102,12 +102,6 @@ func (dkg *dkgState) HandleDKGShare(dkgMsg *dkgtypes.DKGDataMessage, height int6
 	dkg.mtx.Lock()
 	defer dkg.mtx.Unlock()
 
-	//dkgMsg, ok := mi.Msg.(*dkgtypes.DKGDataMessage)
-	//if !ok {
-	//	dkg.Logger.Info("dkgState: rejecting message (unknown type)", reflect.TypeOf(dkgMsg).Name())
-	//	return
-	//}
-
 	var msg = dkgMsg.Data
 	dealer, ok := dkg.dkgRoundToDealer[msg.RoundID]
 	if !ok {
@@ -223,8 +217,7 @@ func (dkg *dkgState) sendSignedDKGMessage(data *dkgalias.DKGData) error {
 
 // Sign sign message by dealer's secret key
 func (dkg *dkgState) Sign(data *dkgalias.DKGData) error {
-	dkg.privValidator.SignData("rchain", data)
-	return nil
+	return dkg.privValidator.SignData("rchain", data)
 }
 
 func (dkg *dkgState) slashDKGLosers(losers []*alias.Validator) {
