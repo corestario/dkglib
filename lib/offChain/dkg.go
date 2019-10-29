@@ -46,17 +46,19 @@ type dkgState struct {
 	newDKGDealer     dkglib.DKGDealerConstructor
 	privValidator    alias.PrivValidator
 
-	Logger log.Logger
-	evsw   events.EventSwitch
+	Logger  log.Logger
+	evsw    events.EventSwitch
+	chainID string
 }
 
-func NewDKG(evsw events.EventSwitch, options ...DKGOption) *dkgState {
+func NewDKG(evsw events.EventSwitch, chainID string, options ...DKGOption) *dkgState {
 	dkg := &dkgState{
 		evsw:             evsw,
 		dkgMsgQueue:      make(chan *dkgtypes.DKGDataMessage, alias.MsgQueueSize),
 		dkgRoundToDealer: make(map[int]dkglib.Dealer),
 		newDKGDealer:     dkglib.NewDKGDealer,
 		dkgNumBlocks:     DefaultDKGNumBlocks,
+		chainID:          chainID,
 	}
 
 	for _, option := range options {
@@ -217,7 +219,7 @@ func (dkg *dkgState) sendSignedDKGMessage(data *dkgalias.DKGData) error {
 
 // Sign sign message by dealer's secret key
 func (dkg *dkgState) Sign(data *dkgalias.DKGData) error {
-	return dkg.privValidator.SignData("rchain", data)
+	return dkg.privValidator.SignData(dkg.chainID, data)
 }
 
 func (dkg *dkgState) slashDKGLosers(losers []*alias.Validator) {

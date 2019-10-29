@@ -60,8 +60,3 @@ func (m *DKGData) GetAddrString() string {
 func (m *DKGData) ValidateBasic() error {
 	return nil
 }
-
-func SignDKGData(privValidator tmalias.PrivValidator, data *DKGData) error {
-	privValidator.SignData("rchain", data)
-	return nil
-}
