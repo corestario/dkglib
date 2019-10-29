@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/dgamingfoundation/dkglib/lib/blsShare"
-
 	dkgalias "github.com/dgamingfoundation/dkglib/lib/alias"
+	"github.com/dgamingfoundation/dkglib/lib/blsShare"
 	dkglib "github.com/dgamingfoundation/dkglib/lib/dealer"
 	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/tendermint/alias"

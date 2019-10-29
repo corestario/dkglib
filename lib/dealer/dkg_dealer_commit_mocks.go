@@ -6,12 +6,10 @@ import (
 	"fmt"
 
 	"github.com/dgamingfoundation/dkglib/lib/alias"
-
-	dkg "go.dedis.ch/kyber/v3/share/dkg/rabin"
-
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
+	dkg "go.dedis.ch/kyber/v3/share/dkg/rabin"
 )
 
 type DKGMockDontSendOneCommit struct {

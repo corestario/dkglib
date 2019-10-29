@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/dgamingfoundation/dkglib/lib/alias"
-
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
