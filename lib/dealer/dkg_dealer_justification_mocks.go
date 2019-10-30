@@ -70,6 +70,7 @@ func (m *DKGMockDontSendOneJustification) GetResponses() ([]*alias.DKGData, erro
 	}
 
 	// remove one response message
+	responses[len(responses)-1] = nil
 	responses = responses[:len(responses)-1]
 
 	return responses, err

@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/dgamingfoundation/dkglib/lib/blsShare"
-
 	dkgalias "github.com/dgamingfoundation/dkglib/lib/alias"
+	"github.com/dgamingfoundation/dkglib/lib/blsShare"
 	dkglib "github.com/dgamingfoundation/dkglib/lib/dealer"
 	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/tendermint/alias"
@@ -42,17 +41,19 @@ type OffChainDKG struct {
 	newDKGDealer     dkglib.DKGDealerConstructor
 	privValidator    alias.PrivValidator
 
-	Logger log.Logger
-	evsw   events.EventSwitch
+	Logger  log.Logger
+	evsw    events.EventSwitch
+	chainID string
 }
 
-func NewOffChainDKG(evsw events.EventSwitch, options ...DKGOption) *OffChainDKG {
+func NewOffChainDKG(evsw events.EventSwitch, chainID string, options ...DKGOption) *OffChainDKG {
 	dkg := &OffChainDKG{
 		evsw:             evsw,
 		dkgMsgQueue:      make(chan *dkgtypes.DKGDataMessage, alias.MsgQueueSize),
 		dkgRoundToDealer: make(map[int]dkglib.Dealer),
 		newDKGDealer:     dkglib.NewDKGDealer,
 		dkgNumBlocks:     DefaultDKGNumBlocks,
+		chainID:          chainID,
 	}
 
 	for _, option := range options {
@@ -221,7 +222,7 @@ func (m *OffChainDKG) sendSignedMessage(data *dkgalias.DKGData) error {
 // Sign sign message by dealer's secret key
 func (m *OffChainDKG) Sign(data *dkgalias.DKGData) error {
 	// TODO: do something with this string constant.
-	if err := m.privValidator.SignData("rchain", data); err != nil {
+	if err := m.privValidator.SignData(m.chainID, data); err != nil {
 		return fmt.Errorf("failed to sign data: %v", err)
 	}
 	return nil

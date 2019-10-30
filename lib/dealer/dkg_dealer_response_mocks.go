@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/dgamingfoundation/dkglib/lib/alias"
-
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
@@ -69,6 +68,7 @@ func (m *DKGMockDontSendOneResponse) GetResponses() ([]*alias.DKGData, error) {
 	}
 
 	// remove one response message
+	responses[len(responses)-1] = nil
 	responses = responses[:len(responses)-1]
 
 	return responses, err
