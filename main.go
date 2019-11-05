@@ -12,9 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	"github.com/cosmos/cosmos-sdk/x/staking"
+	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
 	"github.com/dgamingfoundation/cosmos-utils/client/context"
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
@@ -46,10 +44,8 @@ func init() {
 
 func MakeCodec() *codec.Codec {
 	var cdc = codec.New()
-	auth.RegisterCodec(cdc)
-	bank.RegisterCodec(cdc)
+	authTypes.RegisterCodec(cdc)
 	cdc.RegisterConcrete(msgs.MsgSendDKGData{}, "randapp/SendDKGData", nil)
-	staking.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	return cdc
@@ -103,19 +99,19 @@ func main() {
 
 func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {
 	cdc := MakeCodec()
-	ctx, err := context.NewContext(chainID, nodeEndpoint, cliHome+vName)
+	ctx, err := context.NewContextWithDelay(chainID, nodeEndpoint, cliHome+vName)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ctx = ctx.WithCodec(cdc)
+	ctx.WithCodec(cdc)
 	addr, _, err := context.GetFromFields(validatorName+vName, cliHome+vName)
 	if err != nil {
 		return nil, nil, err
 	}
-	ctx = ctx.WithFromName(validatorName + vName).WithPassphrase(passphrase).WithFromAddress(addr).WithFrom(validatorName + vName)
+	ctx.WithFromName(validatorName + vName).WithPassphrase(passphrase).WithFromAddress(addr).WithFrom(validatorName + vName)
 
-	accRetriever := auth.NewAccountRetriever(ctx)
+	accRetriever := authTypes.NewAccountRetriever(ctx)
 	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(addr)
 	if err != nil {
 		return nil, nil, err
@@ -124,12 +120,17 @@ func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, accSequence, 400000, 0.0, false, ctx.Verifier.ChainID(), "", nil, nil).WithKeybase(kb)
+
+	for ctx.GetVerifier() == nil {
+		time.Sleep(time.Second)
+	}
+
+	txBldr := authtxb.NewTxBuilder(utils.GetTxEncoder(cdc), accNumber, accSequence, 400000, 0.0, false, ctx.GetVerifier().ChainID(), "", nil, nil).WithKeybase(kb)
 	if err := ctx.EnsureAccountExists(); err != nil {
 		return nil, nil, fmt.Errorf("failed to find account: %v", err)
 	}
 
-	return &ctx, &txBldr, nil
+	return ctx, &txBldr, nil
 }
 
 type MockFirer struct{}
