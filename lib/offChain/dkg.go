@@ -22,6 +22,8 @@ const (
 	DefaultDKGNumBlocks = 100
 )
 
+var _ dkgtypes.DKG = &OffChainDKG{}
+
 var (
 	ErrVerifierNotReady = errors.New("verifier not ready yet")
 )
