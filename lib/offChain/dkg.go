@@ -34,6 +34,7 @@ type OffChainDKG struct {
 	verifier     dkgtypes.Verifier
 	nextVerifier dkgtypes.Verifier
 	changeHeight int64
+	slashPenalty float64
 
 	// message queue used for dkgState-related messages.
 	dkgMsgQueue      chan *dkgtypes.DKGDataMessage
@@ -56,6 +57,7 @@ func NewOffChainDKG(evsw events.EventSwitch, chainID string, options ...DKGOptio
 		newDKGDealer:     dkglib.NewDKGDealer,
 		dkgNumBlocks:     DefaultDKGNumBlocks,
 		chainID:          chainID,
+		slashPenalty:     1.0,
 	}
 
 	for _, option := range options {
@@ -94,6 +96,14 @@ func WithDKGDealerConstructor(newDealer dkglib.DKGDealerConstructor) DKGOption {
 			return
 		}
 		d.newDKGDealer = newDealer
+	}
+}
+
+func WithCustomSlashPenalty(penalty float64) DKGOption {
+	return func(d *OffChainDKG) {
+		if penalty > 0 && penalty < 50 {
+			d.slashPenalty = penalty
+		}
 	}
 }
 
@@ -234,6 +244,10 @@ func (m *OffChainDKG) slashLosers(losers []*alias.Validator) {
 		loser := loser
 		m.Logger.Info("Slashing validator", loser.Address.String())
 	}
+}
+
+func (m *OffChainDKG) slashOne(loser *alias.Validator) {
+
 }
 
 func (m *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet) {
