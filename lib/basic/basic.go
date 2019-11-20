@@ -15,8 +15,8 @@ import (
 )
 
 type DKGBasic struct {
-	offChainDKG *offChain.OffChainDKG
-	onChain     *onChain.OnChainDKG
+	offChain *offChain.OffChainDKG
+	onChain  *onChain.OnChainDKG
 }
 
 var _ dkg.DKG = &DKGBasic{}
@@ -52,8 +52,8 @@ func NewDKGBasic(
 	).WithKeybase(kb)
 
 	return &DKGBasic{
-		offChainDKG: offChain.NewOffChainDKG(evsw, chainID, options...),
-		onChain:     onChain.NewOnChainDKG(cliCtx, &txBldr),
+		offChain: offChain.NewOffChainDKG(evsw, chainID, options...),
+		onChain:  onChain.NewOnChainDKG(cliCtx, &txBldr),
 	}, nil
 }
 
@@ -63,28 +63,28 @@ func (m *DKGBasic) HandleOffChainShare(
 	validators *types.ValidatorSet,
 	pubKey crypto.PubKey,
 ) (switchToOnChain bool) {
-	if switchToOnChain := m.offChainDKG.HandleOffChainShare(dkgMsg, height, validators, pubKey); switchToOnChain {
+	if switchToOnChain := m.offChain.HandleOffChainShare(dkgMsg, height, validators, pubKey); switchToOnChain {
 		// TODO: implement.
 	}
 	return true
 }
 
 func (m *DKGBasic) CheckDKGTime(height int64, validators *types.ValidatorSet) {
-	m.offChainDKG.CheckDKGTime(height, validators)
+	m.offChain.CheckDKGTime(height, validators)
 }
 
 func (m *DKGBasic) SetVerifier(verifier dkg.Verifier) {
-	m.offChainDKG.SetVerifier(verifier)
+	m.offChain.SetVerifier(verifier)
 }
 
 func (m *DKGBasic) Verifier() dkg.Verifier {
-	return m.offChainDKG.Verifier()
+	return m.offChain.Verifier()
 }
 
 func (m *DKGBasic) MsgQueue() chan *dkg.DKGDataMessage {
-	return m.offChainDKG.MsgQueue()
+	return m.offChain.MsgQueue()
 }
 
 func (m *DKGBasic) GetLosers() []crypto.Address {
-	return append(m.offChainDKG.GetLosers(), m.onChainDKG.GetLosers()...)
+	return append(m.offChain.GetLosers(), m.onChain.GetLosers()...)
 }

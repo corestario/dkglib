@@ -96,6 +96,10 @@ func (m *OnChainDKG) StartRound(
 	return nil
 }
 
+func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
+	return []*tmtypes.Validator{}
+}
+
 func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 	msg := msgs.NewMsgSendDKGData(data, m.cli.GetFromAddress())
 	if err := msg.ValidateBasic(); err != nil {

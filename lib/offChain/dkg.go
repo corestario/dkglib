@@ -11,10 +11,10 @@ import (
 	dkglib "github.com/dgamingfoundation/dkglib/lib/dealer"
 	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/tendermint/alias"
+	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
-	tmtypes "github.com/tendermint/tendermint/alias"
 )
 
 const (
