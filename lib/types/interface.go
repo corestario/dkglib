@@ -1,6 +1,7 @@
 package types
 
 import (
+	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/types"
 )
@@ -11,5 +12,5 @@ type DKG interface {
 	SetVerifier(verifier Verifier)
 	Verifier() Verifier
 	MsgQueue() chan *DKGDataMessage
-	GetLosers() []crypto.Address
+	GetLosers() []*tmtypes.Validator
 }
