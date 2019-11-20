@@ -84,3 +84,7 @@ func (m *DKGBasic) Verifier() dkg.Verifier {
 func (m *DKGBasic) MsgQueue() chan *dkg.DKGDataMessage {
 	return m.offChainDKG.MsgQueue()
 }
+
+func (m *DKGBasic) GetLosers() []crypto.Address {
+	return append(m.offChainDKG.GetLosers(), m.onChainDKG.GetLosers()...)
+}

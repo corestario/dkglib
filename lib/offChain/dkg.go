@@ -14,6 +14,7 @@ import (
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
+	tmtypes "github.com/tendermint/tendermint/alias"
 )
 
 const (
@@ -261,6 +262,18 @@ func (m *OffChainDKG) Verifier() dkgtypes.Verifier {
 
 func (m *OffChainDKG) SetVerifier(v dkgtypes.Verifier) {
 	m.verifier = v
+}
+
+func (m *OffChainDKG) GetLosers() []*tmtypes.Validator {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+
+	dealer, ok := m.dkgRoundToDealer[m.dkgRoundID]
+	if !ok {
+		panic(fmt.Sprintf("failed to get dealer for current round ID (%d)", m.dkgRoundID))
+	}
+
+	return dealer.PopLosers()
 }
 
 type verifierFunc func(s string, i int) dkgtypes.Verifier

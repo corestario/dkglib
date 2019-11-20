@@ -29,6 +29,7 @@ type Dealer interface {
 	Transit() error
 	GenerateTransitions()
 	GetLosers() []*tmtypes.Validator
+	PopLosers() []*tmtypes.Validator
 	HandleDKGPubKey(msg *alias.DKGData) error
 	SetTransitions(t []transition)
 	SendDeals() (err error, ready bool)
@@ -197,6 +198,12 @@ func (d *DKGDealer) GetLosers() []*tmtypes.Validator {
 		out = append(out, validator)
 	}
 
+	return out
+}
+
+func (d *DKGDealer) PopLosers() []*tmtypes.Validator {
+	out := d.GetLosers()
+	d.losers = nil
 	return out
 }
 

@@ -11,4 +11,5 @@ type DKG interface {
 	SetVerifier(verifier Verifier)
 	Verifier() Verifier
 	MsgQueue() chan *DKGDataMessage
+	GetLosers() []crypto.Address
 }
