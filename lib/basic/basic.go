@@ -21,10 +21,10 @@ import (
 )
 
 type DKGBasic struct {
-	offChain *offChain.OffChainDKG
-	onChain  *onChain.OnChainDKG
-	mtx         sync.Mutex
-	isOnChain   bool
+	offChain  *offChain.OffChainDKG
+	onChain   *onChain.OnChainDKG
+	mtx       sync.Mutex
+	isOnChain bool
 }
 
 var _ dkg.DKG = &DKGBasic{}
