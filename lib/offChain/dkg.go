@@ -157,7 +157,6 @@ func (m *OffChainDKG) HandleOffChainShare(
 	}
 	if err != nil {
 		m.Logger.Error("dkgState: failed to handle message", "error", err, "type", msg.Type)
-		m.slashLosers(dealer.GetLosers())
 		m.dkgRoundToDealer[msg.RoundID] = nil
 		return false
 	}
@@ -169,7 +168,6 @@ func (m *OffChainDKG) HandleOffChainShare(
 	}
 	if err != nil {
 		m.Logger.Error("dkgState: verifier should be ready, but it's not ready:", err)
-		m.slashLosers(dealer.GetLosers())
 		m.dkgRoundToDealer[msg.RoundID] = nil
 		return true
 	}
@@ -228,13 +226,6 @@ func (m *OffChainDKG) Sign(data *dkgalias.DKGData) error {
 		return fmt.Errorf("failed to sign data: %v", err)
 	}
 	return nil
-}
-
-func (m *OffChainDKG) slashLosers(losers []*alias.Validator) {
-	for _, loser := range losers {
-		loser := loser
-		m.Logger.Info("Slashing validator", loser.Address.String())
-	}
 }
 
 func (m *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet) {

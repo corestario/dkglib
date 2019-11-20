@@ -219,8 +219,11 @@ func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
 		pubKey = d.suiteG2.Point()
 	)
 	if err := dec.Decode(pubKey); err != nil {
+		d.losers = append(d.losers, crypto.Address(msg.Addr))
 		return fmt.Errorf("dkgState: failed to decode public key from %s: %v", msg.Addr, err)
 	}
+	// TODO: check if we want to slash validators who send duplicate keys
+	// (we probably do).
 	d.pubKeys.Add(&PK2Addr{PK: pubKey, Addr: crypto.Address(msg.Addr)})
 
 	if err := d.Transit(); err != nil {
@@ -310,6 +313,7 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 		}
 	)
 	if err := dec.Decode(deal); err != nil {
+		d.losers = append(d.losers, crypto.Address(msg.Addr))
 		return fmt.Errorf("failed to decode deal: %v", err)
 	}
 
@@ -347,7 +351,6 @@ func (d *DKGDealer) ProcessDeals() (error, bool) {
 		if err = d.SendMsgCb(responseMsg); err != nil {
 			return fmt.Errorf("failed to sign message: %v", err), true
 		}
-
 	}
 
 	return err, true
@@ -392,6 +395,7 @@ func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
 		resp = &dkg.Response{}
 	)
 	if err := dec.Decode(resp); err != nil {
+		d.losers = append(d.losers, crypto.Address(msg.Addr))
 		return fmt.Errorf("failed to decode deal: %v", err)
 	}
 
@@ -499,6 +503,7 @@ func (d *DKGDealer) HandleDKGJustification(msg *alias.DKGData) error {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		justification = &dkg.Justification{}
 		if err := dec.Decode(justification); err != nil {
+			d.losers = append(d.losers, crypto.Address(msg.Addr))
 			return fmt.Errorf("failed to decode deal: %v", err)
 		}
 	}
@@ -611,6 +616,7 @@ func (d *DKGDealer) HandleDKGCommit(msg *alias.DKGData) error {
 		commits.Commitments = append(commits.Commitments, d.suiteG2.Point())
 	}
 	if err := dec.Decode(commits); err != nil {
+		d.losers = append(d.losers, crypto.Address(msg.Addr))
 		return fmt.Errorf("failed to decode commit: %v", err)
 	}
 	d.commits.add(msg.GetAddrString(), commits)
@@ -642,6 +648,7 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 			if err != nil {
 				return fmt.Errorf("failed to ProcessSecretCommits: %v", err), true
 			}
+			// TODO: check if we *really* need to add the complained dealer to losers.
 			if complaint != nil {
 				alreadyFinished = false
 				var (
@@ -682,6 +689,7 @@ func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
 			complaint.Deal.Commitments = append(complaint.Deal.Commitments, d.suiteG2.Point())
 		}
 		if err := dec.Decode(complaint); err != nil {
+			d.losers = append(d.losers, crypto.Address(msg.Addr))
 			return fmt.Errorf("failed to decode complaint: %v", err)
 		}
 	}
@@ -742,6 +750,7 @@ func (d *DKGDealer) HandleDKGReconstructCommit(msg *alias.DKGData) error {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		rc = &dkg.ReconstructCommits{}
 		if err := dec.Decode(rc); err != nil {
+			d.losers = append(d.losers, crypto.Address(msg.Addr))
 			return fmt.Errorf("failed to decode complaint: %v", err)
 		}
 	}
