@@ -224,7 +224,6 @@ func (m *OffChainDKG) sendSignedMessage(data *dkgalias.DKGData) error {
 
 // Sign sign message by dealer's secret key
 func (m *OffChainDKG) Sign(data *dkgalias.DKGData) error {
-	// TODO: do something with this string constant.
 	if err := m.privValidator.SignData(m.chainID, data); err != nil {
 		return fmt.Errorf("failed to sign data: %v", err)
 	}
@@ -233,6 +232,7 @@ func (m *OffChainDKG) Sign(data *dkgalias.DKGData) error {
 
 func (m *OffChainDKG) slashLosers(losers []*alias.Validator) {
 	for _, loser := range losers {
+		loser := loser
 		m.Logger.Info("Slashing validator", loser.Address.String())
 	}
 }
@@ -262,6 +262,10 @@ func (m *OffChainDKG) Verifier() dkgtypes.Verifier {
 
 func (m *OffChainDKG) SetVerifier(v dkgtypes.Verifier) {
 	m.verifier = v
+}
+
+func (m *OffChainDKG) GetPrivValidator() alias.PrivValidator {
+	return m.privValidator
 }
 
 func (m *OffChainDKG) GetLosers() []*tmtypes.Validator {
