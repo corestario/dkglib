@@ -69,8 +69,6 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 		}
 		for _, msg := range messages {
 			if err := handler(msg.Data); err != nil {
-				m.slashLosers(m.dealer.GetLosers())
-
 				return fmt.Errorf("failed to handle message: %v", err), false
 			}
 		}
@@ -81,6 +79,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
 	}
+
 	return nil, true
 }
 
@@ -96,6 +95,10 @@ func (m *OnChainDKG) StartRound(
 	}
 
 	return nil
+}
+
+func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
+	return m.dealer.GetLosers()
 }
 
 func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
@@ -127,11 +130,4 @@ func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.RandDKG
 	}
 
 	return data, nil
-}
-
-func (m *OnChainDKG) slashLosers(losers []*tmtypes.Validator) {
-	for _, loser := range losers {
-		loser := loser
-		fmt.Println("Slashing validator: ", loser.Address.String())
-	}
 }

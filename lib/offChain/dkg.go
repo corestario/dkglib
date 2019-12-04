@@ -11,6 +11,7 @@ import (
 	dkglib "github.com/dgamingfoundation/dkglib/lib/dealer"
 	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/tendermint/alias"
+	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
@@ -156,7 +157,6 @@ func (m *OffChainDKG) HandleOffChainShare(
 	}
 	if err != nil {
 		m.Logger.Error("dkgState: failed to handle message", "error", err, "type", msg.Type)
-		m.slashLosers(dealer.GetLosers())
 		m.dkgRoundToDealer[msg.RoundID] = nil
 		return false
 	}
@@ -168,7 +168,6 @@ func (m *OffChainDKG) HandleOffChainShare(
 	}
 	if err != nil {
 		m.Logger.Error("dkgState: verifier should be ready, but it's not ready:", err)
-		m.slashLosers(dealer.GetLosers())
 		m.dkgRoundToDealer[msg.RoundID] = nil
 		return true
 	}
@@ -229,13 +228,6 @@ func (m *OffChainDKG) Sign(data *dkgalias.DKGData) error {
 	return nil
 }
 
-func (m *OffChainDKG) slashLosers(losers []*alias.Validator) {
-	for _, loser := range losers {
-		loser := loser
-		m.Logger.Info("Slashing validator", loser.Address.String())
-	}
-}
-
 func (m *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet) {
 	if m.changeHeight == height {
 		m.Logger.Info("dkgState: time to update verifier", m.changeHeight, height)
@@ -265,6 +257,18 @@ func (m *OffChainDKG) SetVerifier(v dkgtypes.Verifier) {
 
 func (m *OffChainDKG) GetPrivValidator() alias.PrivValidator {
 	return m.privValidator
+}
+
+func (m *OffChainDKG) GetLosers() []*tmtypes.Validator {
+	m.mtx.Lock()
+	defer m.mtx.Unlock()
+
+	dealer, ok := m.dkgRoundToDealer[m.dkgRoundID]
+	if !ok {
+		panic(fmt.Sprintf("failed to get dealer for current round ID (%d)", m.dkgRoundID))
+	}
+
+	return dealer.PopLosers()
 }
 
 type verifierFunc func(s string, i int) dkgtypes.Verifier

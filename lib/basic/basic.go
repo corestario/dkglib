@@ -14,6 +14,7 @@ import (
 	"github.com/dgamingfoundation/dkglib/lib/onChain"
 	dkg "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/go-amino"
+	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
@@ -21,10 +22,10 @@ import (
 )
 
 type DKGBasic struct {
-	offChainDKG *offChain.OffChainDKG
-	onChain     *onChain.OnChainDKG
-	mtx         sync.Mutex
-	isOnChain   bool
+	offChain  *offChain.OffChainDKG
+	onChain   *onChain.OnChainDKG
+	mtx       sync.Mutex
+	isOnChain bool
 }
 
 var _ dkg.DKG = &DKGBasic{}
@@ -60,8 +61,8 @@ func NewDKGBasic(
 	).WithKeybase(kb)
 
 	return &DKGBasic{
-		offChainDKG: offChain.NewOffChainDKG(evsw, chainID, options...),
-		onChain:     onChain.NewOnChainDKG(cliCtx, &txBldr),
+		offChain: offChain.NewOffChainDKG(evsw, chainID, options...),
+		onChain:  onChain.NewOnChainDKG(cliCtx, &txBldr),
 	}, nil
 }
 
@@ -83,7 +84,7 @@ func (m *DKGBasic) HandleOffChainShare(
 		return false
 	}
 
-	switchToOnChain := m.offChainDKG.HandleOffChainShare(dkgMsg, height, validators, pubKey)
+	switchToOnChain := m.offChain.HandleOffChainShare(dkgMsg, height, validators, pubKey)
 	// have to switch to on-chain
 	if switchToOnChain {
 		m.isOnChain = true
@@ -111,7 +112,7 @@ func (m *DKGBasic) HandleOffChainShare(
 func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logger) bool {
 	err := m.onChain.StartRound(
 		validators,
-		m.offChainDKG.GetPrivValidator(),
+		m.offChain.GetPrivValidator(),
 		&MockFirer{},
 		logger,
 		0,
@@ -125,7 +126,6 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 		select {
 		case <-tk.C:
 			if err, ok := m.onChain.ProcessBlock(); err != nil {
-				// slash here
 				return false
 			} else if ok {
 				fmt.Println("All instances finished DKG, O.K.")
@@ -136,17 +136,21 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 }
 
 func (m *DKGBasic) CheckDKGTime(height int64, validators *types.ValidatorSet) {
-	m.offChainDKG.CheckDKGTime(height, validators)
+	m.offChain.CheckDKGTime(height, validators)
 }
 
 func (m *DKGBasic) SetVerifier(verifier dkg.Verifier) {
-	m.offChainDKG.SetVerifier(verifier)
+	m.offChain.SetVerifier(verifier)
 }
 
 func (m *DKGBasic) Verifier() dkg.Verifier {
-	return m.offChainDKG.Verifier()
+	return m.offChain.Verifier()
 }
 
 func (m *DKGBasic) MsgQueue() chan *dkg.DKGDataMessage {
-	return m.offChainDKG.MsgQueue()
+	return m.offChain.MsgQueue()
+}
+
+func (m *DKGBasic) GetLosers() []*tmtypes.Validator {
+	return append(m.offChain.GetLosers(), m.onChain.GetLosers()...)
 }
