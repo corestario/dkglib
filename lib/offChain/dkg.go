@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"testing"
 
 	dkgalias "github.com/dgamingfoundation/dkglib/lib/alias"
 	"github.com/dgamingfoundation/dkglib/lib/blsShare"
@@ -182,6 +183,22 @@ func (m *OffChainDKG) HandleOffChainShare(
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
 
 	return false
+}
+
+func TestHandleOffChainShare(t *testing.T) {
+	evsw := events.NewEventSwitch()
+	offChain := NewOffChainDKG(evsw, "chain")
+	msg := dkgtypes.DKGDataMessage{
+		Data: &dkgalias.DKGData{
+			Type:        dkgalias.DKGDeal,
+			Addr:        []byte{},
+			RoundID:     0,
+			Data:        []byte{},
+			ToIndex:     1,
+			NumEntities: 1,
+		},
+	}
+	offChain.HandleOffChainShare(&msg, 0, nil, nil)
 }
 
 func (m *OffChainDKG) startRound(validators *alias.ValidatorSet) error {
