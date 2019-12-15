@@ -97,7 +97,7 @@ func (m *OnChainDKG) StartRound(
 	return nil
 }
 
-func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
+func (m *OnChainDKG) GetLosers() []*types.DKGLoser {
 	return m.dealer.GetLosers()
 }
 

@@ -28,8 +28,7 @@ type Dealer interface {
 	GetState() DealerState
 	Transit() error
 	GenerateTransitions()
-	GetLosers() []*tmtypes.Validator
-	PopLosers() []*tmtypes.Validator
+	GetLosers() []*types.DKGLoser
 	HandleDKGPubKey(msg *alias.DKGData) error
 	SetTransitions(t []transition)
 	SendDeals() (err error, ready bool)
@@ -80,7 +79,7 @@ type DKGDealer struct {
 	complaints         *messageStore
 	reconstructCommits *messageStore
 
-	losers []crypto.Address
+	losers []*types.DKGLoser
 }
 
 type DealerState struct {
@@ -191,20 +190,8 @@ func (d *DKGDealer) SetTransitions(t []transition) {
 	d.transitions = t
 }
 
-func (d *DKGDealer) GetLosers() []*tmtypes.Validator {
-	var out []*tmtypes.Validator
-	for _, loser := range d.losers {
-		_, validator := d.validators.GetByAddress(loser)
-		out = append(out, validator)
-	}
-
-	return out
-}
-
-func (d *DKGDealer) PopLosers() []*tmtypes.Validator {
-	out := d.GetLosers()
-	d.losers = nil
-	return out
+func (d *DKGDealer) GetLosers() []*types.DKGLoser {
+	return d.losers
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -219,11 +206,16 @@ func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
 		pubKey = d.suiteG2.Point()
 	)
 	if err := dec.Decode(pubKey); err != nil {
-		d.losers = append(d.losers, crypto.Address(msg.Addr))
+		_, validator := d.validators.GetByAddress(msg.Addr)
+		d.losers = append(d.losers, &types.DKGLoser{
+			Height:    0,
+			Reason:    types.DKGDataMessage{Data: msg},
+			Validator: validator,
+		})
 		return fmt.Errorf("dkgState: failed to decode public key from %s: %v", msg.Addr, err)
 	}
 	// TODO: check if we want to slash validators who send duplicate keys
-	// (we probably do).
+	// TODO (we probably do).
 	d.pubKeys.Add(&PK2Addr{PK: pubKey, Addr: crypto.Address(msg.Addr)})
 
 	if err := d.Transit(); err != nil {
@@ -313,7 +305,12 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 		}
 	)
 	if err := dec.Decode(deal); err != nil {
-		d.losers = append(d.losers, crypto.Address(msg.Addr))
+		_, validator := d.validators.GetByAddress(msg.Addr)
+		d.losers = append(d.losers, &types.DKGLoser{
+			Height:    0,
+			Reason:    types.DKGDataMessage{Data: msg},
+			Validator: validator,
+		})
 		return fmt.Errorf("failed to decode deal: %v", err)
 	}
 
@@ -395,7 +392,12 @@ func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
 		resp = &dkg.Response{}
 	)
 	if err := dec.Decode(resp); err != nil {
-		d.losers = append(d.losers, crypto.Address(msg.Addr))
+		_, validator := d.validators.GetByAddress(msg.Addr)
+		d.losers = append(d.losers, &types.DKGLoser{
+			Height:    0,
+			Reason:    types.DKGDataMessage{Data: msg},
+			Validator: validator,
+		})
 		return fmt.Errorf("failed to decode deal: %v", err)
 	}
 
@@ -503,7 +505,12 @@ func (d *DKGDealer) HandleDKGJustification(msg *alias.DKGData) error {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		justification = &dkg.Justification{}
 		if err := dec.Decode(justification); err != nil {
-			d.losers = append(d.losers, crypto.Address(msg.Addr))
+			_, validator := d.validators.GetByAddress(msg.Addr)
+			d.losers = append(d.losers, &types.DKGLoser{
+				Height:    0,
+				Reason:    types.DKGDataMessage{Data: msg},
+				Validator: validator,
+			})
 			return fmt.Errorf("failed to decode deal: %v", err)
 		}
 	}
@@ -586,13 +593,11 @@ func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {
 			qualSet[idx] = true
 		}
 
-		for idx, pk2addr := range d.pubKeys {
+		for idx, _ := range d.pubKeys {
 			if !qualSet[idx] {
-				d.losers = append(d.losers, pk2addr.Addr)
+				return nil, errors.New("some of participants failed to complete phase I")
 			}
 		}
-
-		return nil, errors.New("some of participants failed to complete phase I")
 	}
 
 	commits, err := d.instance.SecretCommits()
@@ -616,7 +621,12 @@ func (d *DKGDealer) HandleDKGCommit(msg *alias.DKGData) error {
 		commits.Commitments = append(commits.Commitments, d.suiteG2.Point())
 	}
 	if err := dec.Decode(commits); err != nil {
-		d.losers = append(d.losers, crypto.Address(msg.Addr))
+		_, validator := d.validators.GetByAddress(msg.Addr)
+		d.losers = append(d.losers, &types.DKGLoser{
+			Height:    0,
+			Reason:    types.DKGDataMessage{Data: msg},
+			Validator: validator,
+		})
 		return fmt.Errorf("failed to decode commit: %v", err)
 	}
 	d.commits.add(msg.GetAddrString(), commits)
@@ -689,7 +699,12 @@ func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
 			complaint.Deal.Commitments = append(complaint.Deal.Commitments, d.suiteG2.Point())
 		}
 		if err := dec.Decode(complaint); err != nil {
-			d.losers = append(d.losers, crypto.Address(msg.Addr))
+			_, validator := d.validators.GetByAddress(msg.Addr)
+			d.losers = append(d.losers, &types.DKGLoser{
+				Height:    0,
+				Reason:    types.DKGDataMessage{Data: msg},
+				Validator: validator,
+			})
 			return fmt.Errorf("failed to decode complaint: %v", err)
 		}
 	}
@@ -750,7 +765,12 @@ func (d *DKGDealer) HandleDKGReconstructCommit(msg *alias.DKGData) error {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		rc = &dkg.ReconstructCommits{}
 		if err := dec.Decode(rc); err != nil {
-			d.losers = append(d.losers, crypto.Address(msg.Addr))
+			_, validator := d.validators.GetByAddress(msg.Addr)
+			d.losers = append(d.losers, &types.DKGLoser{
+				Height:    0,
+				Reason:    types.DKGDataMessage{Data: msg},
+				Validator: validator,
+			})
 			return fmt.Errorf("failed to decode complaint: %v", err)
 		}
 	}

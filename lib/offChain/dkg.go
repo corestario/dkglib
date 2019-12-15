@@ -9,9 +9,9 @@ import (
 	dkgalias "github.com/dgamingfoundation/dkglib/lib/alias"
 	"github.com/dgamingfoundation/dkglib/lib/blsShare"
 	dkglib "github.com/dgamingfoundation/dkglib/lib/dealer"
+	"github.com/dgamingfoundation/dkglib/lib/types"
 	dkgtypes "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/tendermint/alias"
-	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
@@ -259,7 +259,7 @@ func (m *OffChainDKG) GetPrivValidator() alias.PrivValidator {
 	return m.privValidator
 }
 
-func (m *OffChainDKG) GetLosers() []*tmtypes.Validator {
+func (m *OffChainDKG) GetLosers() []*types.DKGLoser {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -268,7 +268,7 @@ func (m *OffChainDKG) GetLosers() []*tmtypes.Validator {
 		panic(fmt.Sprintf("failed to get dealer for current round ID (%d)", m.dkgRoundID))
 	}
 
-	return dealer.PopLosers()
+	return dealer.GetLosers()
 }
 
 type verifierFunc func(s string, i int) dkgtypes.Verifier
