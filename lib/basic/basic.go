@@ -148,6 +148,14 @@ func (m *DKGBasic) SetOnChain(isOnChain bool) {
 }
 
 func (m *DKGBasic) Verifier() dkg.Verifier {
+	if m.isOnChain {
+		verifier, err := m.onChain.GetVerifier()
+		if err != nil {
+			return m.offChain.Verifier()
+		}
+
+		return verifier
+	}
 	return m.offChain.Verifier()
 }
 
