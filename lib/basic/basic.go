@@ -95,7 +95,7 @@ func (m *DKGBasic) HandleOffChainShare(
 
 		// try on-chain till success
 		for {
-			if m.runOnChainDKG(validators, logger) {
+			if m.RunOnChainDKG(validators, logger) {
 				break
 			}
 		}
@@ -109,7 +109,7 @@ func (m *DKGBasic) HandleOffChainShare(
 	return false
 }
 
-func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logger) bool {
+func (m *DKGBasic) RunOnChainDKG(validators *types.ValidatorSet, logger log.Logger) bool {
 	err := m.onChain.StartRound(
 		validators,
 		m.offChain.GetPrivValidator(),
@@ -143,7 +143,19 @@ func (m *DKGBasic) SetVerifier(verifier dkg.Verifier) {
 	m.offChain.SetVerifier(verifier)
 }
 
+func (m *DKGBasic) SetOnChain(isOnChain bool) {
+	m.isOnChain = isOnChain
+}
+
 func (m *DKGBasic) Verifier() dkg.Verifier {
+	if m.isOnChain {
+		verifier, err := m.onChain.GetVerifier()
+		if err != nil {
+			return m.offChain.Verifier()
+		}
+
+		return verifier
+	}
 	return m.offChain.Verifier()
 }
 
