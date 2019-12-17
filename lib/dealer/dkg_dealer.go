@@ -80,7 +80,8 @@ type DKGDealer struct {
 	complaints         *messageStore
 	reconstructCommits *messageStore
 
-	losers []crypto.Address
+	losers    []crypto.Address
+	isVerbose bool
 }
 
 type DealerState struct {
@@ -125,6 +126,11 @@ func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, se
 	}
 }
 
+func (d *DKGDealer) WithVerboseLogs() *DKGDealer {
+	d.isVerbose = true
+	return d
+}
+
 func (d *DKGDealer) Start() error {
 	d.secKey = d.suiteG2.Scalar().Pick(d.suiteG2.RandomStream())
 	d.pubKey = d.suiteG2.Point().Mul(d.secKey, nil)
@@ -162,9 +168,13 @@ func (d *DKGDealer) Transit() error {
 		var tn = d.transitions[0]
 		err, ready := tn()
 		if !ready {
+			if d.isVerbose {
+				d.logger.Info("DKGDealer Transition not ready", "transition current length", len(d.transitions))
+			}
 			return nil
 		}
 		if err != nil {
+			d.logger.Info("DKGDealer Transit failed", "transition current length", len(d.transitions), "error", err)
 			return err
 		}
 		d.transitions = d.transitions[1:]
@@ -195,6 +205,9 @@ func (d *DKGDealer) GetLosers() []*tmtypes.Validator {
 	var out []*tmtypes.Validator
 	for _, loser := range d.losers {
 		_, validator := d.validators.GetByAddress(loser)
+		if d.isVerbose {
+			d.logger.Info("got looser", "address", loser, "validator", validator.String())
+		}
 		out = append(out, validator)
 	}
 
@@ -236,6 +249,9 @@ func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
 
 func (d *DKGDealer) SendDeals() (error, bool) {
 	if !d.IsReady() {
+		if d.isVerbose {
+			d.logger.Info("DKG send deals: dealer is not ready")
+		}
 		return nil, false
 	}
 	d.eventFirer.FireEvent(types.EventDKGPubKeyReceived, nil)
@@ -261,6 +277,9 @@ func (d *DKGDealer) IsReady() bool {
 }
 
 func (d *DKGDealer) GetDeals() ([]*alias.DKGData, error) {
+	if d.isVerbose {
+		d.logger.Info("DKGDealer get deals start")
+	}
 	// It's needed for DistKeyGenerator and for binary search in array
 	sort.Sort(d.pubKeys)
 	dkgInstance, err := dkg.NewDistKeyGenerator(d.suiteG2, d.secKey, d.pubKeys.GetPKs(), (d.validators.Size()*2)/3)
@@ -301,6 +320,9 @@ func (d *DKGDealer) GetDeals() ([]*alias.DKGData, error) {
 		dealMessages = append(dealMessages, dealMessage)
 	}
 
+	if d.isVerbose {
+		d.logger.Info("DKGDealer get deals success")
+	}
 	return dealMessages, nil
 }
 
@@ -327,6 +349,9 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 
 	d.logger.Info("dkgState: deal is intended for us, storing")
 	if _, exists := d.deals[msg.GetAddrString()]; exists {
+		if d.isVerbose {
+			d.logger.Info("DKGDealer deals message already exists", "roundID", msg.RoundID, "msgAddr", msg.Addr)
+		}
 		return nil
 	}
 
@@ -340,6 +365,9 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessDeals() (error, bool) {
 	if !d.IsDealsReady() {
+		if d.isVerbose {
+			d.logger.Info("DKGDealer process deals, deals are not ready")
+		}
 		return nil, false
 	}
 

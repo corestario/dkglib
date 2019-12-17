@@ -1,6 +1,9 @@
 package alias
 
 import (
+	"os"
+
+	"github.com/prometheus/common/log"
 	"github.com/tendermint/go-amino"
 	tmalias "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
@@ -44,6 +47,8 @@ func (m DKGData) SignBytes(string) []byte {
 	)
 	m.Signature = nil
 	if sb, err = Cdc.MarshalBinaryLengthPrefixed(m); err != nil {
+		lg := log.NewLogger(os.Stdout)
+		lg.Errorf("DKGData type: %v, RoundID: %v, ToIndex: %v, SignBytes Marshal Error: %v", m.Type, m.RoundID, m.ToIndex, err)
 		panic(err)
 	}
 	return sb

@@ -107,7 +107,7 @@ func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
 func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 	msg := msgs.NewMsgSendDKGData(data, m.cli.GetFromAddress())
 	if err := msg.ValidateBasic(); err != nil {
-		return err
+		return fmt.Errorf("failed to validate basic: %v", err)
 	}
 
 	err := utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
