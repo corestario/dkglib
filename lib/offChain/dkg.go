@@ -45,10 +45,9 @@ type OffChainDKG struct {
 	newDKGDealer     dkglib.DKGDealerConstructor
 	privValidator    alias.PrivValidator
 
-	Logger    log.Logger
-	evsw      events.EventSwitch
-	chainID   string
-	IsVerbose bool
+	Logger  log.Logger
+	evsw    events.EventSwitch
+	chainID string
 }
 
 func NewOffChainDKG(evsw events.EventSwitch, chainID string, options ...DKGOption) *OffChainDKG {
@@ -100,10 +99,6 @@ func WithDKGDealerConstructor(newDealer dkglib.DKGDealerConstructor) DKGOption {
 	}
 }
 
-func WithVerboseLogs() DKGOption {
-	return func(d *OffChainDKG) { d.IsVerbose = true }
-}
-
 func (m *OffChainDKG) HandleOffChainShare(
 	dkgMsg *dkgtypes.DKGDataMessage,
 	height int64,
@@ -116,27 +111,19 @@ func (m *OffChainDKG) HandleOffChainShare(
 	var msg = dkgMsg.Data
 	dealer, ok := m.dkgRoundToDealer[msg.RoundID]
 	if !ok {
-		if m.IsVerbose {
-			m.Logger.Info("dkgState: dealer not found, creating a new dealer", "round_id", msg.RoundID)
-		}
+		m.Logger.Debug("dkgState: dealer not found, creating a new dealer", "round_id", msg.RoundID)
 		dealer = m.newDKGDealer(validators, m.privValidator, m.sendSignedMessage, m.evsw, m.Logger, msg.RoundID)
 		m.dkgRoundToDealer[msg.RoundID] = dealer
 		if err := dealer.Start(); err != nil {
-			if m.IsVerbose {
-				m.Logger.Info("dealer start failed, panic", "error", err.Error())
-			}
+			m.Logger.Debug("dealer start failed, panic", "error", err.Error())
 			panic(fmt.Sprintf("failed to start a dealer (round %d): %v", m.dkgRoundID, err))
 		}
 	}
 	if dealer == nil {
-		if m.IsVerbose {
-			m.Logger.Info("dkgState: received message for inactive round:", "round", msg.RoundID)
-		}
+		m.Logger.Debug("dkgState: received message for inactive round:", "round", msg.RoundID)
 		return false
 	}
-	if m.IsVerbose {
-		m.Logger.Info("dkgState: received message with signature:", "signature", hex.EncodeToString(dkgMsg.Data.Signature))
-	}
+	m.Logger.Debug("dkgState: received message with signature:", "signature", hex.EncodeToString(dkgMsg.Data.Signature))
 
 	if err := dealer.VerifyMessage(*dkgMsg); err != nil {
 		m.Logger.Info("DKG: can't verify message:", "error", err.Error())
@@ -182,9 +169,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 		return false
 	}
 	if err != nil {
-		if m.IsVerbose {
-			m.Logger.Error("dkgState: verifier should be ready, but it's not ready:", "error", err)
-		}
+		m.Logger.Debug("dkgState: verifier should be ready, but it's not ready:", "error", err)
 		m.dkgRoundToDealer[msg.RoundID] = nil
 		return true
 	}
@@ -198,9 +183,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 	m.changeHeight = (height + BlocksAhead) - ((height + BlocksAhead) % 5)
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
 
-	if m.IsVerbose {
-		m.Logger.Error("handle off-chain share success")
-	}
+	m.Logger.Debug("handle off-chain share success")
 	return false
 }
 
@@ -249,9 +232,7 @@ func (m *OffChainDKG) sendDKGMessage(msg *dkgalias.DKGData) {
 
 func (m *OffChainDKG) sendSignedMessage(data *dkgalias.DKGData) error {
 	if err := m.Sign(data); err != nil {
-		if m.IsVerbose {
-			m.Logger.Error("Off-chain DKG: failed to sign data", "error", err)
-		}
+		m.Logger.Debug("Off-chain DKG: failed to sign data", "error", err)
 		return err
 	}
 	m.Logger.Info("DKG: msg signed with signature", "signature", hex.EncodeToString(data.Signature))
@@ -277,9 +258,7 @@ func (m *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet)
 
 	if height > 1 && height%m.dkgNumBlocks == 0 {
 		if err := m.startRound(validators); err != nil {
-			if m.IsVerbose {
-				m.Logger.Error("failed to start a dealer", "round", m.dkgRoundID, "error", err)
-			}
+			m.Logger.Debug("failed to start a dealer", "round", m.dkgRoundID, "error", err)
 			panic(fmt.Sprintf("failed to start a dealer (round %d): %v", m.dkgRoundID, err))
 		}
 	}
@@ -307,9 +286,7 @@ func (m *OffChainDKG) GetLosers() []*tmtypes.Validator {
 
 	dealer, ok := m.dkgRoundToDealer[m.dkgRoundID]
 	if !ok {
-		if m.IsVerbose {
-			m.Logger.Error("failed to get dealer for current", "roundID", m.dkgRoundID)
-		}
+		m.Logger.Debug("failed to get dealer for current", "roundID", m.dkgRoundID)
 		panic(fmt.Sprintf("failed to get dealer for current round ID (%d)", m.dkgRoundID))
 	}
 
