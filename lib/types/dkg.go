@@ -5,10 +5,20 @@ import (
 	"fmt"
 
 	"github.com/dgamingfoundation/dkglib/lib/alias"
+	tmtypes "github.com/tendermint/tendermint/alias"
 )
 
 var (
 	ErrDKGVerifierNotReady = errors.New("verifier not ready yet")
+)
+
+type LoserType string
+
+const (
+	LoserTypeCorruptData          LoserType = "loser_type_corrupt_data"
+	LoserTypeDuplicateData        LoserType = "loser_type_duplicate_data"
+	LoserTypeCorruptJustification LoserType = "loser_type_corrupt_justification"
+	LoserTypeMissingJustification LoserType = "loser_type_missing_justification"
 )
 
 type DKGDataMessage struct {
@@ -21,4 +31,10 @@ func (m *DKGDataMessage) ValidateBasic() error {
 
 func (m *DKGDataMessage) String() string {
 	return fmt.Sprintf("[Proposal %+v]", m.Data)
+}
+
+type DKGLoser struct {
+	Type      LoserType
+	Data      DKGDataMessage
+	Validator *tmtypes.Validator
 }

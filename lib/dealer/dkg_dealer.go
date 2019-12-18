@@ -28,8 +28,7 @@ type Dealer interface {
 	GetState() DealerState
 	Transit() error
 	GenerateTransitions()
-	GetLosers() []*tmtypes.Validator
-	PopLosers() []*tmtypes.Validator
+	GetLosers() []*types.DKGLoser
 	HandleDKGPubKey(msg *alias.DKGData) error
 	SetTransitions(t []transition)
 	SendDeals() (err error, ready bool)
@@ -56,6 +55,9 @@ type Dealer interface {
 	GetVerifier() (types.Verifier, error)
 	SendMsgCb(*alias.DKGData) error
 	VerifyMessage(msg types.DKGDataMessage) error
+	CheckLoserDuplicateData(loser *types.DKGLoser) bool
+	CheckLoserCorruptData(loser *types.DKGLoser) bool
+	CheckLoserCorruptJustification(loser *types.DKGLoser) bool
 }
 
 type DKGDealer struct {
@@ -80,7 +82,9 @@ type DKGDealer struct {
 	complaints         *messageStore
 	reconstructCommits *messageStore
 
-	losers []crypto.Address
+	losers []*types.DKGLoser
+
+	messagesHistory []*alias.DKGData
 }
 
 type DealerState struct {
@@ -191,20 +195,8 @@ func (d *DKGDealer) SetTransitions(t []transition) {
 	d.transitions = t
 }
 
-func (d *DKGDealer) GetLosers() []*tmtypes.Validator {
-	var out []*tmtypes.Validator
-	for _, loser := range d.losers {
-		_, validator := d.validators.GetByAddress(loser)
-		out = append(out, validator)
-	}
-
-	return out
-}
-
-func (d *DKGDealer) PopLosers() []*tmtypes.Validator {
-	out := d.GetLosers()
-	d.losers = nil
-	return out
+func (d *DKGDealer) GetLosers() []*types.DKGLoser {
+	return d.losers
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -214,17 +206,27 @@ func (d *DKGDealer) PopLosers() []*tmtypes.Validator {
 //////////////////////////////////////////////////////////////////////////////
 
 func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
+	d.messagesHistory = append(d.messagesHistory, msg)
 	var (
-		dec    = gob.NewDecoder(bytes.NewBuffer(msg.Data))
-		pubKey = d.suiteG2.Point()
+		dec          = gob.NewDecoder(bytes.NewBuffer(msg.Data))
+		pubKey       = d.suiteG2.Point()
+		_, validator = d.validators.GetByAddress(msg.Addr)
 	)
 	if err := dec.Decode(pubKey); err != nil {
-		d.losers = append(d.losers, crypto.Address(msg.Addr))
+		d.losers = append(d.losers, &types.DKGLoser{
+			Type:      types.LoserTypeCorruptData,
+			Data:      types.DKGDataMessage{Data: msg},
+			Validator: validator,
+		})
 		return fmt.Errorf("dkgState: failed to decode public key from %s: %v", msg.Addr, err)
 	}
-	// TODO: check if we want to slash validators who send duplicate keys
-	// (we probably do).
-	d.pubKeys.Add(&PK2Addr{PK: pubKey, Addr: crypto.Address(msg.Addr)})
+	if !d.pubKeys.Add(&PK2Addr{PK: pubKey, Addr: msg.Addr}) {
+		d.losers = append(d.losers, &types.DKGLoser{
+			Type:      types.LoserTypeDuplicateData,
+			Data:      types.DKGDataMessage{Data: msg},
+			Validator: validator,
+		})
+	}
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -239,18 +241,18 @@ func (d *DKGDealer) SendDeals() (error, bool) {
 	}
 	d.eventFirer.FireEvent(types.EventDKGPubKeyReceived, nil)
 
-	messages, err := d.GetDeals()
+	dealMessages, err := d.GetDeals()
 	if err != nil {
 		return fmt.Errorf("failed to get deals: %v", err), true
 	}
 
-	for _, msg := range messages {
+	for _, msg := range dealMessages {
 		if err = d.SendMsgCb(msg); err != nil {
 			return fmt.Errorf("failed to sign message: %v", err), true
 		}
 	}
 
-	d.logger.Info("dkgState: sending deals", "deals", len(messages))
+	d.logger.Info("dkgState: sending deals", "deals", len(dealMessages))
 
 	return err, true
 }
@@ -304,6 +306,7 @@ func (d *DKGDealer) GetDeals() ([]*alias.DKGData, error) {
 }
 
 func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
+	d.messagesHistory = append(d.messagesHistory, msg)
 	var (
 		dec  = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		deal = &dkg.Deal{ // We need to initialize everything down to the kyber.Point to avoid nil panics.
@@ -313,7 +316,12 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 		}
 	)
 	if err := dec.Decode(deal); err != nil {
-		d.losers = append(d.losers, crypto.Address(msg.Addr))
+		_, validator := d.validators.GetByAddress(msg.Addr)
+		d.losers = append(d.losers, &types.DKGLoser{
+			Type:      types.LoserTypeCorruptData,
+			Data:      types.DKGDataMessage{Data: msg},
+			Validator: validator,
+		})
 		return fmt.Errorf("failed to decode deal: %v", err)
 	}
 
@@ -325,6 +333,7 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 
 	d.logger.Info("dkgState: deal is intended for us, storing")
 	if _, exists := d.deals[msg.GetAddrString()]; exists {
+		// TODO: do we want to blame for duplicate data here?
 		return nil
 	}
 
@@ -390,12 +399,18 @@ func (d *DKGDealer) GetResponses() ([]*alias.DKGData, error) {
 }
 
 func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
+	d.messagesHistory = append(d.messagesHistory, msg)
 	var (
 		dec  = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		resp = &dkg.Response{}
 	)
 	if err := dec.Decode(resp); err != nil {
-		d.losers = append(d.losers, crypto.Address(msg.Addr))
+		_, validator := d.validators.GetByAddress(msg.Addr)
+		d.losers = append(d.losers, &types.DKGLoser{
+			Type:      types.LoserTypeCorruptData,
+			Data:      types.DKGDataMessage{Data: msg},
+			Validator: validator,
+		})
 		return fmt.Errorf("failed to decode deal: %v", err)
 	}
 
@@ -498,12 +513,19 @@ func (d *DKGDealer) GetJustifications() ([]*alias.DKGData, error) {
 }
 
 func (d *DKGDealer) HandleDKGJustification(msg *alias.DKGData) error {
+	d.messagesHistory = append(d.messagesHistory, msg)
+
 	var justification *dkg.Justification
 	if msg.Data != nil {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		justification = &dkg.Justification{}
 		if err := dec.Decode(justification); err != nil {
-			d.losers = append(d.losers, crypto.Address(msg.Addr))
+			_, validator := d.validators.GetByAddress(msg.Addr)
+			d.losers = append(d.losers, &types.DKGLoser{
+				Type:      types.LoserTypeCorruptData,
+				Data:      types.DKGDataMessage{Data: msg},
+				Validator: validator,
+			})
 			return fmt.Errorf("failed to decode deal: %v", err)
 		}
 	}
@@ -558,12 +580,20 @@ func (d *DKGDealer) IsJustificationsReady() bool {
 }
 
 func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {
-	for _, peerJustifications := range d.justifications.data {
+	for addr, peerJustifications := range d.justifications.data {
 		for _, just := range peerJustifications {
 			justification := just.(*dkg.Justification)
 			if justification != nil {
 				d.logger.Info("dkgState: processing non-empty justification", "from", justification.Index)
+				_, validator := d.validators.GetByAddress([]byte(addr))
 				if err := d.instance.ProcessJustification(justification); err != nil {
+					d.losers = append(d.losers, &types.DKGLoser{
+						Type: types.LoserTypeCorruptJustification,
+						// TODO: we need to provide the signature from original message
+						// for the evidence to be provable, and this info is lost when
+						// we add the justification to the messageStore.
+						Validator: validator,
+					})
 					return nil, fmt.Errorf("failed to ProcessJustification: %v", err)
 				}
 			} else {
@@ -586,13 +616,11 @@ func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {
 			qualSet[idx] = true
 		}
 
-		for idx, pk2addr := range d.pubKeys {
+		for idx, _ := range d.pubKeys {
 			if !qualSet[idx] {
-				d.losers = append(d.losers, pk2addr.Addr)
+				return nil, errors.New("some of participants failed to complete phase I")
 			}
 		}
-
-		return nil, errors.New("some of participants failed to complete phase I")
 	}
 
 	commits, err := d.instance.SecretCommits()
@@ -610,13 +638,14 @@ func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {
 //////////////////////////////////////////////////////////////////////////////
 
 func (d *DKGDealer) HandleDKGCommit(msg *alias.DKGData) error {
+	d.messagesHistory = append(d.messagesHistory, msg)
+
 	dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
 	commits := &dkg.SecretCommits{}
 	for i := 0; i < msg.NumEntities; i++ {
 		commits.Commitments = append(commits.Commitments, d.suiteG2.Point())
 	}
 	if err := dec.Decode(commits); err != nil {
-		d.losers = append(d.losers, crypto.Address(msg.Addr))
 		return fmt.Errorf("failed to decode commit: %v", err)
 	}
 	d.commits.add(msg.GetAddrString(), commits)
@@ -679,6 +708,8 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 }
 
 func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
+	d.messagesHistory = append(d.messagesHistory, msg)
+
 	var complaint *dkg.ComplaintCommits
 	if msg.Data != nil {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
@@ -689,7 +720,6 @@ func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
 			complaint.Deal.Commitments = append(complaint.Deal.Commitments, d.suiteG2.Point())
 		}
 		if err := dec.Decode(complaint); err != nil {
-			d.losers = append(d.losers, crypto.Address(msg.Addr))
 			return fmt.Errorf("failed to decode complaint: %v", err)
 		}
 	}
@@ -745,12 +775,13 @@ func (d *DKGDealer) ProcessComplaints() (error, bool) {
 }
 
 func (d *DKGDealer) HandleDKGReconstructCommit(msg *alias.DKGData) error {
+	d.messagesHistory = append(d.messagesHistory, msg)
+
 	var rc *dkg.ReconstructCommits
 	if msg.Data != nil {
 		dec := gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		rc = &dkg.ReconstructCommits{}
 		if err := dec.Decode(rc); err != nil {
-			d.losers = append(d.losers, crypto.Address(msg.Addr))
 			return fmt.Errorf("failed to decode complaint: %v", err)
 		}
 	}
@@ -827,6 +858,68 @@ func (d *DKGDealer) VerifyMessage(msg types.DKGDataMessage) error {
 		return fmt.Errorf("invalid DKG message signature: %s", hex.EncodeToString(msg.Data.Signature))
 	}
 	return nil
+}
+
+func (d *DKGDealer) CheckLoserDuplicateData(loser *types.DKGLoser) bool {
+	var (
+		count int
+		msg   = loser.Data.Data
+	)
+	for _, historyMsg := range d.messagesHistory {
+		if bytes.Equal(historyMsg.Addr, msg.Addr) && historyMsg.Type == msg.Type {
+			// TODO: check if participants can have zero indices, and if so,
+			// make ToIndex nullable.
+			if historyMsg.ToIndex > 0 && historyMsg.ToIndex == msg.ToIndex {
+				count++
+			}
+		}
+	}
+
+	return count > 1
+}
+
+func (d *DKGDealer) CheckLoserCorruptData(loser *types.DKGLoser) bool {
+	var msg = loser.Data.Data
+
+	if err := msg.ValidateBasic(); err != nil {
+		// We can not be sure that the message was actually sent by this user.
+		return false
+	}
+
+	// TODO: implement other types checks.
+	var dec = gob.NewDecoder(bytes.NewBuffer(msg.Data))
+	switch loser.Data.Data.Type {
+	case alias.DKGPubKey:
+		val := d.suiteG2.Point()
+		if err := dec.Decode(val); err != nil {
+			return true
+		}
+	case alias.DKGDeal:
+		val := &dkg.Deal{ // We need to initialize everything down to the kyber.Point to avoid nil panics.
+			Deal: &vss.EncryptedDeal{
+				DHKey: d.suiteG2.Point(),
+			},
+		}
+		if err := dec.Decode(val); err != nil {
+			return true
+		}
+	case alias.DKGResponse:
+		val := &dkg.Response{}
+		if err := dec.Decode(val); err != nil {
+			return true
+		}
+	case alias.DKGJustification:
+		val := &dkg.Justification{}
+		if err := dec.Decode(val); err != nil {
+			return true
+		}
+	}
+	return false
+}
+
+func (d *DKGDealer) CheckLoserCorruptJustification(loser *types.DKGLoser) bool {
+	// TODO: implement.
+	return false
 }
 
 func (d *DKGDealer) SendMsgCb(msg *alias.DKGData) error {

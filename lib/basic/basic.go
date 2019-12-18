@@ -14,7 +14,6 @@ import (
 	"github.com/dgamingfoundation/dkglib/lib/onChain"
 	dkg "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/go-amino"
-	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
@@ -151,6 +150,7 @@ func (m *DKGBasic) MsgQueue() chan *dkg.DKGDataMessage {
 	return m.offChain.MsgQueue()
 }
 
-func (m *DKGBasic) GetLosers() []*tmtypes.Validator {
-	return append(m.offChain.GetLosers(), m.onChain.GetLosers()...)
+func (m *DKGBasic) GetLosers() []*dkg.DKGLoser {
+	// We only report verifiable on-chain losers.
+	return m.onChain.GetLosers()
 }
