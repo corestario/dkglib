@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"os"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
@@ -23,12 +24,14 @@ type OnChainDKG struct {
 	txBldr    *authtxb.TxBuilder
 	dealer    dealer.Dealer
 	typesList []alias.DKGDataType
+	logger    log.Logger
 }
 
 func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG {
 	return &OnChainDKG{
 		cli:    cli,
 		txBldr: txBldr,
+		logger: log.NewTMLogger(os.Stdout),
 	}
 }
 
@@ -104,7 +107,7 @@ func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
 func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 	msg := msgs.NewMsgSendDKGData(data, m.cli.GetFromAddress())
 	if err := msg.ValidateBasic(); err != nil {
-		return err
+		return fmt.Errorf("failed to validate basic: %v", err)
 	}
 
 	err := utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
@@ -126,8 +129,15 @@ func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.RandDKG
 	}
 
 	if dataType == 0 {
-		fmt.Println("DATA LEN=", data)
+		m.logger.Info("DATA LEN=", data)
 	}
 
 	return data, nil
+}
+
+func (m *OnChainDKG) slashLosers(losers []*tmtypes.Validator) {
+	for _, loser := range losers {
+		loser := loser
+		m.logger.Info("Slashing validator: ", loser.Address.String())
+	}
 }

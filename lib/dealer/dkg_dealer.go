@@ -162,9 +162,11 @@ func (d *DKGDealer) Transit() error {
 		var tn = d.transitions[0]
 		err, ready := tn()
 		if !ready {
+			d.logger.Debug("DKGDealer Transition not ready", "transition current length", len(d.transitions))
 			return nil
 		}
 		if err != nil {
+			d.logger.Info("DKGDealer Transit failed", "transition current length", len(d.transitions), "error", err)
 			return err
 		}
 		d.transitions = d.transitions[1:]
@@ -195,6 +197,7 @@ func (d *DKGDealer) GetLosers() []*tmtypes.Validator {
 	var out []*tmtypes.Validator
 	for _, loser := range d.losers {
 		_, validator := d.validators.GetByAddress(loser)
+		d.logger.Debug("got looser", "address", loser, "validator", validator.String())
 		out = append(out, validator)
 	}
 
@@ -214,6 +217,7 @@ func (d *DKGDealer) PopLosers() []*tmtypes.Validator {
 //////////////////////////////////////////////////////////////////////////////
 
 func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
+	d.logger.Info("dkgState: received PubKey message", "from", msg.GetAddrString())
 	var (
 		dec    = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		pubKey = d.suiteG2.Point()
@@ -235,6 +239,7 @@ func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
 
 func (d *DKGDealer) SendDeals() (error, bool) {
 	if !d.IsReady() {
+		d.logger.Debug("DKG send deals: dealer is not ready")
 		return nil, false
 	}
 	d.eventFirer.FireEvent(types.EventDKGPubKeyReceived, nil)
@@ -260,6 +265,7 @@ func (d *DKGDealer) IsReady() bool {
 }
 
 func (d *DKGDealer) GetDeals() ([]*alias.DKGData, error) {
+	d.logger.Debug("DKGDealer get deals start")
 	// It's needed for DistKeyGenerator and for binary search in array
 	sort.Sort(d.pubKeys)
 	dkgInstance, err := dkg.NewDistKeyGenerator(d.suiteG2, d.secKey, d.pubKeys.GetPKs(), (d.validators.Size()*2)/3)
@@ -300,10 +306,12 @@ func (d *DKGDealer) GetDeals() ([]*alias.DKGData, error) {
 		dealMessages = append(dealMessages, dealMessage)
 	}
 
+	d.logger.Info("DKGDealer get deals success")
 	return dealMessages, nil
 }
 
 func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
+	d.logger.Info("dkgState: received Deal message", "from", msg.GetAddrString())
 	var (
 		dec  = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		deal = &dkg.Deal{ // We need to initialize everything down to the kyber.Point to avoid nil panics.
@@ -325,6 +333,7 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 
 	d.logger.Info("dkgState: deal is intended for us, storing")
 	if _, exists := d.deals[msg.GetAddrString()]; exists {
+		d.logger.Debug("DKGDealer deals message already exists", "roundID", msg.RoundID, "msgAddr", msg.Addr)
 		return nil
 	}
 
@@ -338,6 +347,7 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessDeals() (error, bool) {
 	if !d.IsDealsReady() {
+		d.logger.Debug("DKGDealer process deals, deals are not ready")
 		return nil, false
 	}
 
@@ -353,6 +363,7 @@ func (d *DKGDealer) ProcessDeals() (error, bool) {
 		}
 	}
 
+	d.logger.Debug("DKG process deals success")
 	return err, true
 }
 
@@ -362,7 +373,7 @@ func (d *DKGDealer) IsDealsReady() bool {
 
 func (d *DKGDealer) GetResponses() ([]*alias.DKGData, error) {
 	var messages []*alias.DKGData
-
+	d.logger.Debug("DKGDealer get responses start")
 	// Each deal produces a response for the deal's issuer (that makes N - 1 responses).
 	for _, deal := range d.deals {
 		resp, err := d.instance.ProcessDeal(deal)
@@ -386,6 +397,7 @@ func (d *DKGDealer) GetResponses() ([]*alias.DKGData, error) {
 	}
 	d.eventFirer.FireEvent(types.EventDKGDealsProcessed, d.roundID)
 
+	d.logger.Debug("DKGDealer get responses finish")
 	return messages, nil
 }
 
@@ -421,6 +433,7 @@ func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessResponses() (error, bool) {
 	if !d.IsResponsesReady() {
+		d.logger.Debug("DKGDealer process responses: responses are not ready")
 		return nil, false
 	}
 
@@ -435,6 +448,7 @@ func (d *DKGDealer) ProcessResponses() (error, bool) {
 		}
 	}
 
+	d.logger.Debug("DKG process responses success")
 	return err, true
 }
 
@@ -452,6 +466,7 @@ func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
 		return nil, fmt.Errorf("failed to ProcessResponse: %v", err)
 	}
 	if justification == nil {
+		d.logger.Debug("justification is nil")
 		return nil, nil
 	}
 
@@ -468,7 +483,7 @@ func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
 
 func (d *DKGDealer) GetJustifications() ([]*alias.DKGData, error) {
 	var messages []*alias.DKGData
-
+	d.logger.Debug("DKG delaer get justification start")
 	for _, peerResponses := range d.responses.data {
 		for _, response := range peerResponses {
 			resp := response.(*dkg.Response)
@@ -493,6 +508,7 @@ func (d *DKGDealer) GetJustifications() ([]*alias.DKGData, error) {
 		}
 	}
 
+	d.logger.Debug("DKG dealer get justification finish")
 	d.eventFirer.FireEvent(types.EventDKGResponsesProcessed, d.roundID)
 	return messages, nil
 }
@@ -525,6 +541,7 @@ func (d *DKGDealer) ProcessJustifications() (error, bool) {
 
 	commits, err := d.GetCommits()
 	if err != nil {
+		d.logger.Debug("DKG dealer process justification failed", "error", err)
 		return err, true
 	}
 
@@ -549,6 +566,7 @@ func (d *DKGDealer) ProcessJustifications() (error, bool) {
 		return fmt.Errorf("failed to sign message: %v", err), true
 	}
 
+	d.logger.Debug("DKG process justifications success")
 	return nil, true
 }
 
@@ -675,6 +693,7 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 		}
 	}
 
+	d.logger.Debug("DKG process commits success")
 	return nil, true
 }
 
@@ -740,6 +759,7 @@ func (d *DKGDealer) ProcessComplaints() (error, bool) {
 
 		}
 	}
+	d.logger.Debug("DKG process complaints success")
 	d.eventFirer.FireEvent(types.EventDKGComplaintProcessed, d.roundID)
 	return nil, true
 }
@@ -766,6 +786,8 @@ func (d *DKGDealer) HandleDKGReconstructCommit(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessReconstructCommits() (error, bool) {
 	if d.reconstructCommits.messagesCount < len(d.instance.QUAL())-1 {
+		d.logger.Debug("reconstruct commits low messages count", "messages count", d.reconstructCommits.messagesCount,
+			"QUAL - 1", len(d.instance.QUAL())-1)
 		return nil, false
 	}
 
@@ -785,7 +807,7 @@ func (d *DKGDealer) ProcessReconstructCommits() (error, bool) {
 	if !d.instance.Finished() {
 		return errors.New("dkgState round is finished, but dkgState instance is not ready"), true
 	}
-
+	d.logger.Debug("DKG process reconstruct commits success")
 	return nil, true
 }
 
