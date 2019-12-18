@@ -12,12 +12,13 @@ import (
 	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/dkglib/lib/offChain"
 	"github.com/dgamingfoundation/dkglib/lib/onChain"
+	"github.com/dgamingfoundation/dkglib/lib/types"
 	dkg "github.com/dgamingfoundation/dkglib/lib/types"
 	"github.com/tendermint/go-amino"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/types"
+	sdk "github.com/tendermint/tendermint/types"
 )
 
 type DKGBasic struct {
@@ -72,7 +73,7 @@ func (m *MockFirer) FireEvent(event string, data events.EventData) {}
 func (m *DKGBasic) HandleOffChainShare(
 	dkgMsg *dkg.DKGDataMessage,
 	height int64,
-	validators *types.ValidatorSet,
+	validators *sdk.ValidatorSet,
 	pubKey crypto.PubKey,
 ) bool {
 
@@ -108,7 +109,7 @@ func (m *DKGBasic) HandleOffChainShare(
 	return false
 }
 
-func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logger) bool {
+func (m *DKGBasic) runOnChainDKG(validators *sdk.ValidatorSet, logger log.Logger) bool {
 	err := m.onChain.StartRound(
 		validators,
 		m.offChain.GetPrivValidator(),
@@ -134,7 +135,7 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 	}
 }
 
-func (m *DKGBasic) CheckDKGTime(height int64, validators *types.ValidatorSet) {
+func (m *DKGBasic) CheckDKGTime(height int64, validators *sdk.ValidatorSet) {
 	m.offChain.CheckDKGTime(height, validators)
 }
 
@@ -155,18 +156,18 @@ func (m *DKGBasic) GetLosers() []*dkg.DKGLoser {
 	return m.onChain.GetLosers()
 }
 
-func (m *DKGBasic) CheckLoserDuplicateData(loser *DKGLoser) bool {
+func (m *DKGBasic) CheckLoserDuplicateData(loser *types.DKGLoser) bool {
 	return m.onChain.GetDealer().CheckLoserDuplicateData(loser)
 }
 
-func (m *DKGBasic) CheckLoserMissingData(loser *DKGLoser) bool {
+func (m *DKGBasic) CheckLoserMissingData(loser *types.DKGLoser) bool {
 	return m.onChain.GetDealer().CheckLoserMissingData(loser)
 }
 
-func (m *DKGBasic) CheckLoserCorruptData(loser *DKGLoser) bool {
+func (m *DKGBasic) CheckLoserCorruptData(loser *types.DKGLoser) bool {
 	return m.onChain.GetDealer().CheckLoserCorruptData(loser)
 }
 
-func (m *DKGBasic) CheckLoserCorruptJustification(loser *DKGLoser) bool {
+func (m *DKGBasic) CheckLoserCorruptJustification(loser *types.DKGLoser) bool {
 	return m.onChain.GetDealer().CheckLoserCorruptJustification(loser)
 }

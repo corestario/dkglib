@@ -16,9 +16,9 @@ type LoserType string
 
 const (
 	LoserTypeCorruptData          LoserType = "loser_type_corrupt_data"
+	LoserTypeMissingData          LoserType = "loser_type_missing_data"
 	LoserTypeDuplicateData        LoserType = "loser_type_duplicate_data"
 	LoserTypeCorruptJustification LoserType = "loser_type_corrupt_justification"
-	LoserTypeMissingJustification LoserType = "loser_type_missing_justification"
 )
 
 type DKGDataMessage struct {

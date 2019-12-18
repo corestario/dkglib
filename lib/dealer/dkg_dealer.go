@@ -56,6 +56,7 @@ type Dealer interface {
 	SendMsgCb(*alias.DKGData) error
 	VerifyMessage(msg types.DKGDataMessage) error
 	CheckLoserDuplicateData(loser *types.DKGLoser) bool
+	CheckLoserMissingData(loser *types.DKGLoser) bool
 	CheckLoserCorruptData(loser *types.DKGLoser) bool
 	CheckLoserCorruptJustification(loser *types.DKGLoser) bool
 }
