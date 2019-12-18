@@ -58,5 +58,6 @@ func (m *DKGData) GetAddrString() string {
 }
 
 func (m *DKGData) ValidateBasic() error {
+	// TODO: at least check the signature.
 	return nil
 }

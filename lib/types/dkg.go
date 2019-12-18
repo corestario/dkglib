@@ -12,6 +12,15 @@ var (
 	ErrDKGVerifierNotReady = errors.New("verifier not ready yet")
 )
 
+type LoserType string
+
+const (
+	LoserTypeCorruptData          LoserType = "loser_type_corrupt_data"
+	LoserTypeDuplicateData        LoserType = "loser_type_duplicate_data"
+	LoserTypeCorruptJustification LoserType = "loser_type_corrupt_justification"
+	LoserTypeMissingJustification LoserType = "loser_type_missing_justification"
+)
+
 type DKGDataMessage struct {
 	Data *alias.DKGData
 }
@@ -25,7 +34,7 @@ func (m *DKGDataMessage) String() string {
 }
 
 type DKGLoser struct {
-	Height    int64
-	Reason    DKGDataMessage
+	Type      LoserType
+	Data      DKGDataMessage
 	Validator *tmtypes.Validator
 }
