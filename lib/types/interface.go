@@ -12,4 +12,8 @@ type DKG interface {
 	Verifier() Verifier
 	MsgQueue() chan *DKGDataMessage
 	GetLosers() []*DKGLoser
+	CheckLoserDuplicateData(loser *DKGLoser) bool
+	CheckLoserMissingData(loser *DKGLoser) bool
+	CheckLoserCorruptData(loser *DKGLoser) bool
+	CheckLoserCorruptJustification(loser *DKGLoser) bool
 }

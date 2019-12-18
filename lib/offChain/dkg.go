@@ -271,6 +271,22 @@ func (m *OffChainDKG) GetLosers() []*types.DKGLoser {
 	return dealer.GetLosers()
 }
 
+func (m *OffChainDKG) CheckLoserDuplicateData(loser *types.DKGLoser) bool {
+	return false
+}
+
+func (m *OffChainDKG) CheckLoserMissingData(loser *types.DKGLoser) bool {
+	return false
+}
+
+func (m *OffChainDKG) CheckLoserCorruptData(loser *types.DKGLoser) bool {
+	return false
+}
+
+func (m *OffChainDKG) CheckLoserCorruptJustification(loser *types.DKGLoser) bool {
+	return false
+}
+
 type verifierFunc func(s string, i int) dkgtypes.Verifier
 
 func GetVerifier(T, N int) verifierFunc {

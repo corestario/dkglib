@@ -32,6 +32,10 @@ func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG 
 	}
 }
 
+func (m *OnChainDKG) GetDealer() dealer.Dealer {
+	return m.dealer
+}
+
 func (m *OnChainDKG) GetVerifier() (types.Verifier, error) {
 	return m.dealer.GetVerifier()
 }

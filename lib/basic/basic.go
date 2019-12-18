@@ -154,3 +154,19 @@ func (m *DKGBasic) GetLosers() []*dkg.DKGLoser {
 	// We only report verifiable on-chain losers.
 	return m.onChain.GetLosers()
 }
+
+func (m *DKGBasic) CheckLoserDuplicateData(loser *DKGLoser) bool {
+	return m.onChain.GetDealer().CheckLoserDuplicateData(loser)
+}
+
+func (m *DKGBasic) CheckLoserMissingData(loser *DKGLoser) bool {
+	return m.onChain.GetDealer().CheckLoserMissingData(loser)
+}
+
+func (m *DKGBasic) CheckLoserCorruptData(loser *DKGLoser) bool {
+	return m.onChain.GetDealer().CheckLoserCorruptData(loser)
+}
+
+func (m *DKGBasic) CheckLoserCorruptJustification(loser *DKGLoser) bool {
+	return m.onChain.GetDealer().CheckLoserCorruptJustification(loser)
+}

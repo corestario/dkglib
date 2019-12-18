@@ -871,11 +871,28 @@ func (d *DKGDealer) CheckLoserDuplicateData(loser *types.DKGLoser) bool {
 			// make ToIndex nullable.
 			if historyMsg.ToIndex > 0 && historyMsg.ToIndex == msg.ToIndex {
 				count++
+			} else {
+				count++
 			}
 		}
 	}
 
 	return count > 1
+}
+
+func (d *DKGDealer) CheckLoserMissingData(loser *types.DKGLoser) bool {
+	var msg = loser.Data.Data
+	for _, historyMsg := range d.messagesHistory {
+		if bytes.Equal(historyMsg.Addr, msg.Addr) && historyMsg.Type == msg.Type {
+			// TODO: check if participants can have zero indices, and if so,
+			// make ToIndex nullable.
+			if historyMsg.ToIndex > 0 && historyMsg.ToIndex == msg.ToIndex {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 func (d *DKGDealer) CheckLoserCorruptData(loser *types.DKGLoser) bool {
