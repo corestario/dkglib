@@ -9,9 +9,9 @@ import (
 	"math"
 	"sort"
 
-	"github.com/dgamingfoundation/dkglib/lib/alias"
-	"github.com/dgamingfoundation/dkglib/lib/blsShare"
-	"github.com/dgamingfoundation/dkglib/lib/types"
+	"github.com/corestario/dkglib/lib/alias"
+	"github.com/corestario/dkglib/lib/blsShare"
+	"github.com/corestario/dkglib/lib/types"
 	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
 	"github.com/tendermint/tendermint/libs/events"
