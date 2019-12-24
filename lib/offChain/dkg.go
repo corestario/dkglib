@@ -162,7 +162,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 	}
 
 	verifier, err := dealer.GetVerifier()
-	if err == ErrVerifierNotReady {
+	if err == dkgtypes.ErrDKGVerifierNotReady {
 		m.Logger.Debug("dkgState: verifier not ready")
 		return false
 	}
@@ -181,10 +181,13 @@ func (m *OffChainDKG) HandleOffChainShare(
 	m.changeHeight = (height + BlocksAhead) - ((height + BlocksAhead) % 5)
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
 
+	m.Logger.Debug("dkgState: success")
+
 	return false
 }
 
 func (m *OffChainDKG) startRound(validators *alias.ValidatorSet) error {
+
 	m.dkgRoundID++
 	m.Logger.Info("dkgState: starting round", "round_id", m.dkgRoundID)
 	_, ok := m.dkgRoundToDealer[m.dkgRoundID]
@@ -241,6 +244,10 @@ func (m *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet)
 			panic(fmt.Sprintf("failed to start a dealer (round %d): %v", m.dkgRoundID, err))
 		}
 	}
+}
+
+func (m *OffChainDKG) StartDKGRound(validators *alias.ValidatorSet) error {
+	return m.startRound(validators)
 }
 
 func (m *OffChainDKG) MsgQueue() chan *dkgtypes.DKGDataMessage {

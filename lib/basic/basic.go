@@ -6,10 +6,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/corestario/cosmos-utils/client/authtypes"
+	"github.com/corestario/cosmos-utils/client/context"
+	"github.com/corestario/cosmos-utils/client/utils"
 	"github.com/cosmos/cosmos-sdk/client/keys"
-	"github.com/dgamingfoundation/cosmos-utils/client/authtypes"
-	"github.com/dgamingfoundation/cosmos-utils/client/context"
-	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/dkglib/lib/offChain"
 	"github.com/dgamingfoundation/dkglib/lib/onChain"
 	dkg "github.com/dgamingfoundation/dkglib/lib/types"
@@ -153,4 +153,8 @@ func (m *DKGBasic) MsgQueue() chan *dkg.DKGDataMessage {
 
 func (m *DKGBasic) GetLosers() []*tmtypes.Validator {
 	return append(m.offChain.GetLosers(), m.onChain.GetLosers()...)
+}
+
+func (m *DKGBasic) StartDKGRound(validators *tmtypes.ValidatorSet) error {
+	return m.offChain.StartDKGRound(validators)
 }

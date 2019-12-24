@@ -5,10 +5,10 @@ import (
 	"encoding/gob"
 	"fmt"
 
+	authtxb "github.com/corestario/cosmos-utils/client/authtypes"
+	"github.com/corestario/cosmos-utils/client/context"
+	"github.com/corestario/cosmos-utils/client/utils"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtxb "github.com/dgamingfoundation/cosmos-utils/client/authtypes"
-	"github.com/dgamingfoundation/cosmos-utils/client/context"
-	"github.com/dgamingfoundation/cosmos-utils/client/utils"
 	"github.com/dgamingfoundation/dkglib/lib/alias"
 	"github.com/dgamingfoundation/dkglib/lib/dealer"
 	"github.com/dgamingfoundation/dkglib/lib/msgs"
@@ -104,7 +104,7 @@ func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
 func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 	msg := msgs.NewMsgSendDKGData(data, m.cli.GetFromAddress())
 	if err := msg.ValidateBasic(); err != nil {
-		return err
+		return fmt.Errorf("failed to send DKG message: %v", err)
 	}
 
 	err := utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
@@ -130,4 +130,8 @@ func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.RandDKG
 	}
 
 	return data, nil
+}
+
+func (m *OnChainDKG) StartDKGRound(validators *tmtypes.ValidatorSet) error {
+	return nil
 }
