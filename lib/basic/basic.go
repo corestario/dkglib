@@ -66,6 +66,14 @@ func NewDKGBasic(
 	}, nil
 }
 
+func (m *DKGBasic) IsReady() bool {
+	if m == nil {
+		return false
+	}
+
+	return true
+}
+
 type MockFirer struct{}
 
 func (m *MockFirer) FireEvent(event string, data events.EventData) {}

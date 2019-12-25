@@ -287,6 +287,14 @@ func (m *OffChainDKG) CheckLoserCorruptJustification(loser *types.DKGLoser) bool
 	return false
 }
 
+func (m *OffChainDKG) IsReady() bool {
+	if m == nil {
+		return false
+	}
+
+	return true
+}
+
 type verifierFunc func(s string, i int) dkgtypes.Verifier
 
 func GetVerifier(T, N int) verifierFunc {
