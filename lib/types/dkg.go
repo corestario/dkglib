@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/dgamingfoundation/dkglib/lib/alias"
+	"github.com/corestario/dkglib/lib/alias"
 )
 
 var (

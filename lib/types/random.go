@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/dgamingfoundation/dkglib/lib/blsShare"
+	"github.com/corestario/dkglib/lib/blsShare"
 )
 
 //DKG events

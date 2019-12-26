@@ -7,8 +7,8 @@ RUN apk add bash ca-certificates git libc-dev expect make jq
 ENV GO111MODULE=off
 ENV PATH /go/bin:$PATH
 ENV GOPATH /go
-ENV DKGPATH /go/src/github.com/dgamingfoundation/dkglib
-RUN mkdir -p /go/src/github.com/dgamingfoundation/dkglib
+ENV DKGPATH /go/src/github.com/corestario/dkglib
+RUN mkdir -p /go/src/github.com/corestario/dkglib
 
 COPY . $DKGPATH
 
