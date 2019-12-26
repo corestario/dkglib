@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"testing"
 
 	dkgalias "github.com/corestario/dkglib/lib/alias"
 	"github.com/corestario/dkglib/lib/blsShare"
@@ -110,18 +111,19 @@ func (m *OffChainDKG) HandleOffChainShare(
 	var msg = dkgMsg.Data
 	dealer, ok := m.dkgRoundToDealer[msg.RoundID]
 	if !ok {
-		m.Logger.Info("dkgState: dealer not found, creating a new dealer", "round_id", msg.RoundID)
+		m.Logger.Debug("dkgState: dealer not found, creating a new dealer", "round_id", msg.RoundID)
 		dealer = m.newDKGDealer(validators, m.privValidator, m.sendSignedMessage, m.evsw, m.Logger, msg.RoundID)
 		m.dkgRoundToDealer[msg.RoundID] = dealer
 		if err := dealer.Start(); err != nil {
+			m.Logger.Debug("dealer start failed, panic", "error", err.Error())
 			panic(fmt.Sprintf("failed to start a dealer (round %d): %v", m.dkgRoundID, err))
 		}
 	}
 	if dealer == nil {
-		m.Logger.Info("dkgState: received message for inactive round:", "round", msg.RoundID)
+		m.Logger.Debug("dkgState: received message for inactive round:", "round", msg.RoundID)
 		return false
 	}
-	m.Logger.Info("dkgState: received message with signature:", "signature", hex.EncodeToString(dkgMsg.Data.Signature))
+	m.Logger.Debug("dkgState: received message with signature:", "signature", hex.EncodeToString(dkgMsg.Data.Signature))
 
 	if err := dealer.VerifyMessage(*dkgMsg); err != nil {
 		m.Logger.Info("DKG: can't verify message:", "error", err.Error())
@@ -167,7 +169,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 		return false
 	}
 	if err != nil {
-		m.Logger.Error("dkgState: verifier should be ready, but it's not ready:", err)
+		m.Logger.Debug("dkgState: verifier should be ready, but it's not ready:", "error", err)
 		m.dkgRoundToDealer[msg.RoundID] = nil
 		return true
 	}
@@ -181,9 +183,24 @@ func (m *OffChainDKG) HandleOffChainShare(
 	m.changeHeight = (height + BlocksAhead) - ((height + BlocksAhead) % 5)
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
 
-	m.Logger.Debug("dkgState: success")
-
+	m.Logger.Debug("handle off-chain share success")
 	return false
+}
+
+func TestHandleOffChainShare(t *testing.T) {
+	evsw := events.NewEventSwitch()
+	offChain := NewOffChainDKG(evsw, "chain")
+	msg := dkgtypes.DKGDataMessage{
+		Data: &dkgalias.DKGData{
+			Type:        dkgalias.DKGDeal,
+			Addr:        []byte{},
+			RoundID:     0,
+			Data:        []byte{},
+			ToIndex:     1,
+			NumEntities: 1,
+		},
+	}
+	offChain.HandleOffChainShare(&msg, 0, nil, nil)
 }
 
 func (m *OffChainDKG) startRound(validators *alias.ValidatorSet) error {
@@ -216,6 +233,7 @@ func (m *OffChainDKG) sendDKGMessage(msg *dkgalias.DKGData) {
 
 func (m *OffChainDKG) sendSignedMessage(data *dkgalias.DKGData) error {
 	if err := m.Sign(data); err != nil {
+		m.Logger.Debug("Off-chain DKG: failed to sign data", "error", err)
 		return err
 	}
 	m.Logger.Info("DKG: msg signed with signature", "signature", hex.EncodeToString(data.Signature))
@@ -241,6 +259,7 @@ func (m *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet)
 
 	if height > 1 && height%m.dkgNumBlocks == 0 {
 		if err := m.startRound(validators); err != nil {
+			m.Logger.Debug("failed to start a dealer", "round", m.dkgRoundID, "error", err)
 			panic(fmt.Sprintf("failed to start a dealer (round %d): %v", m.dkgRoundID, err))
 		}
 	}
@@ -272,6 +291,7 @@ func (m *OffChainDKG) GetLosers() []*tmtypes.Validator {
 
 	dealer, ok := m.dkgRoundToDealer[m.dkgRoundID]
 	if !ok {
+		m.Logger.Debug("failed to get dealer for current", "roundID", m.dkgRoundID)
 		panic(fmt.Sprintf("failed to get dealer for current round ID (%d)", m.dkgRoundID))
 	}
 

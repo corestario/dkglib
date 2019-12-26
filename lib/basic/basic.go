@@ -1,7 +1,6 @@
 package basic
 
 import (
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -26,6 +25,7 @@ type DKGBasic struct {
 	onChain   *onChain.OnChainDKG
 	mtx       sync.Mutex
 	isOnChain bool
+	logger    log.Logger
 }
 
 var _ dkg.DKG = &DKGBasic{}
@@ -59,10 +59,11 @@ func NewDKGBasic(
 		nil,
 		nil,
 	).WithKeybase(kb)
-
+	logger := log.NewTMLogger(os.Stdout)
 	return &DKGBasic{
 		offChain: offChain.NewOffChainDKG(evsw, chainID, options...),
 		onChain:  onChain.NewOnChainDKG(cliCtx, &txBldr),
+		logger:   logger,
 	}, nil
 }
 
@@ -76,26 +77,25 @@ func (m *DKGBasic) HandleOffChainShare(
 	validators *types.ValidatorSet,
 	pubKey crypto.PubKey,
 ) bool {
-
 	// check if on-chain dkg is running
 	m.mtx.Lock()
 	if m.isOnChain {
 		m.mtx.Unlock()
+		m.logger.Info("On-chain DKG is running, stop off-chain attempt")
 		return false
 	}
 
 	switchToOnChain := m.offChain.HandleOffChainShare(dkgMsg, height, validators, pubKey)
 	// have to switch to on-chain
 	if switchToOnChain {
+		m.logger.Info("Switch to on-chain DKG")
 		m.isOnChain = true
 		// unlock here for not to wait isOnChain check
 		m.mtx.Unlock()
 
-		logger := log.NewTMLogger(os.Stdout)
-
 		// try on-chain till success
 		for {
-			if m.runOnChainDKG(validators, logger) {
+			if m.runOnChainDKG(validators, m.logger) {
 				break
 			}
 		}
@@ -105,7 +105,9 @@ func (m *DKGBasic) HandleOffChainShare(
 	} else {
 		m.mtx.Unlock()
 	}
+	m.logger.Info("Handle off-chain share end")
 
+	// TODO check return statement
 	return false
 }
 
@@ -118,6 +120,7 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 		0,
 	)
 	if err != nil {
+		m.logger.Info("On-chain DKG start round failed", "error", err)
 		panic(err)
 	}
 
@@ -126,9 +129,10 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 		select {
 		case <-tk.C:
 			if err, ok := m.onChain.ProcessBlock(); err != nil {
+				m.logger.Info("on-chain DKG process block failed", "error", err)
 				return false
 			} else if ok {
-				fmt.Println("All instances finished DKG, O.K.")
+				m.logger.Info("All instances finished on-chain DKG, O.K.")
 				return true
 			}
 		}
