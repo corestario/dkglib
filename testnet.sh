@@ -7,7 +7,7 @@ cur_path=$( cd "$(dirname "${BASH_SOURCE[0]}")" ; pwd -P )
 cd $cur_path
 rm -rf ./vendor
 
-gopath=$(whereis go | ggrep -oP '(?<=go: )(\S*)(?= .*)' -m 1)
+gopath=$(whereis go | grep -oP '(?<=go: )(\S*)(?= .*)' -m 1)
 PATH=$gopath:$gopath/bin:$PATH
 
 echo $GOBIN

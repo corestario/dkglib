@@ -1,4 +1,4 @@
-module github.com/dgamingfoundation/dkglib
+module github.com/corestario/dkglib
 
 go 1.12
 
@@ -12,8 +12,8 @@ require (
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5
 
-replace github.com/tendermint/tendermint => /home/andrey/projs/tendermint
+replace github.com/tendermint/tendermint => ./../tendermint
 
-replace github.com/corestario/cosmos-utils/client => /home/andrey/projs/cosmos-utils/client
+replace github.com/corestario/cosmos-utils/client => ./../cosmos-utils/client
 
-replace github.com/dgamingfoundation/dkglib => ./
+replace github.com/corestario/dkglib => ./
