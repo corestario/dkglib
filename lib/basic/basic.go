@@ -158,3 +158,7 @@ func (m *DKGBasic) MsgQueue() chan *dkg.DKGDataMessage {
 func (m *DKGBasic) GetLosers() []*tmtypes.Validator {
 	return append(m.offChain.GetLosers(), m.onChain.GetLosers()...)
 }
+
+func (m *DKGBasic) StartDKGRound(validators *tmtypes.ValidatorSet) error {
+	return m.offChain.StartDKGRound(validators)
+}

@@ -14,12 +14,12 @@ import (
 	"github.com/corestario/cosmos-utils/client/utils"
 	msgs "github.com/corestario/dkglib/lib/msgs"
 	onChain "github.com/corestario/dkglib/lib/onChain"
-	"github.com/corestario/tendermint/crypto/ed25519"
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	types "github.com/tendermint/tendermint/alias"
+	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 )

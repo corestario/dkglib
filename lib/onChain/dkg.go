@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"os"
 
 	authtxb "github.com/corestario/cosmos-utils/client/authtypes"
 	"github.com/corestario/cosmos-utils/client/context"
@@ -135,9 +134,6 @@ func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.RandDKG
 	return data, nil
 }
 
-func (m *OnChainDKG) slashLosers(losers []*tmtypes.Validator) {
-	for _, loser := range losers {
-		loser := loser
-		m.logger.Info("Slashing validator: ", loser.Address.String())
-	}
+func (m *OnChainDKG) StartDKGRound(validators *tmtypes.ValidatorSet) error {
+	return nil
 }
