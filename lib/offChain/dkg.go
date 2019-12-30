@@ -184,7 +184,8 @@ func (m *OffChainDKG) HandleOffChainShare(
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
 
 	m.Logger.Debug("handle off-chain share success")
-	return false
+
+  return false
 }
 
 func TestHandleOffChainShare(t *testing.T) {

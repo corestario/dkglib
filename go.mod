@@ -17,4 +17,3 @@ replace github.com/tendermint/tendermint => ./../tendermint
 replace github.com/corestario/cosmos-utils/client => ./../cosmos-utils/client
 
 replace github.com/corestario/dkglib => ./
-
