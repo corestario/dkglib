@@ -90,12 +90,10 @@ func main() {
 				panic(fmt.Sprintf("failed to start round: %v", err))
 			} else if ok {
 				fmt.Println("All instances finished DKG, O.K.")
-
 				return
 			}
 		}
 	}
-
 }
 
 func getTools(vName string) (*context.Context, *authtxb.TxBuilder, error) {
