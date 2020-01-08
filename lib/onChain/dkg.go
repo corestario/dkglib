@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"os"
 
 	authtxb "github.com/corestario/cosmos-utils/client/authtypes"
 	"github.com/corestario/cosmos-utils/client/context"
