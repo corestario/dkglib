@@ -99,6 +99,10 @@ func WithDKGDealerConstructor(newDealer dkglib.DKGDealerConstructor) DKGOption {
 	}
 }
 
+func (m *OffChainDKG) NewBlockNotify() {
+	return
+}
+
 func (m *OffChainDKG) HandleOffChainShare(
 	dkgMsg *dkgtypes.DKGDataMessage,
 	height int64,
@@ -185,7 +189,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 
 	m.Logger.Debug("handle off-chain share success")
 
-  return false
+	return false
 }
 
 func TestHandleOffChainShare(t *testing.T) {

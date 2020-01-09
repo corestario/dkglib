@@ -1,10 +1,6 @@
 package basic
 
 import (
-	"os"
-	"sync"
-	"time"
-
 	"github.com/corestario/cosmos-utils/client/authtypes"
 	"github.com/corestario/cosmos-utils/client/context"
 	"github.com/corestario/cosmos-utils/client/utils"
@@ -18,14 +14,17 @@ import (
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 	"github.com/tendermint/tendermint/types"
+	"os"
+	"sync"
 )
 
 type DKGBasic struct {
-	offChain  *offChain.OffChainDKG
-	onChain   *onChain.OnChainDKG
-	mtx       sync.Mutex
-	isOnChain bool
-	logger    log.Logger
+	offChain      *offChain.OffChainDKG
+	onChain       *onChain.OnChainDKG
+	mtx           sync.Mutex
+	isOnChain     bool
+	logger        log.Logger
+	blockNotifier chan bool
 }
 
 var _ dkg.DKG = &DKGBasic{}
@@ -70,6 +69,12 @@ func NewDKGBasic(
 type MockFirer struct{}
 
 func (m *MockFirer) FireEvent(event string, data events.EventData) {}
+
+func (m *DKGBasic) NewBlockNotify() {
+	if len(m.blockNotifier) < 1 {
+		m.blockNotifier <- true
+	}
+}
 
 func (m *DKGBasic) HandleOffChainShare(
 	dkgMsg *dkg.DKGDataMessage,
@@ -124,10 +129,9 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 		panic(err)
 	}
 
-	tk := time.NewTicker(time.Millisecond * 3000)
 	for {
 		select {
-		case <-tk.C:
+		case <-m.blockNotifier:
 			if err, ok := m.onChain.ProcessBlock(); err != nil {
 				m.logger.Info("on-chain DKG process block failed", "error", err)
 				return false
