@@ -2,6 +2,7 @@ package msgs
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/corestario/dkglib/lib/alias"
@@ -36,12 +37,12 @@ func (msg MsgSendDKGData) Route() string { return "randapp" }
 func (msg MsgSendDKGData) Type() string { return "send_dkg_data" }
 
 // ValidateBasic runs stateless checks on the message
-func (msg MsgSendDKGData) ValidateBasic() sdk.Error {
+func (msg MsgSendDKGData) ValidateBasic() error {
 	if msg.Owner.Empty() {
-		return sdk.ErrInvalidAddress(msg.Owner.String())
+		return errors.New("empty owner")
 	}
 	if err := msg.Data.ValidateBasic(); err != nil {
-		return sdk.ErrUnknownRequest(fmt.Sprintf("data validation failed: %v", err))
+		return fmt.Errorf("data validation failed: %v", err)
 	}
 	return nil
 }
