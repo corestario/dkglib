@@ -19,11 +19,13 @@ import (
 )
 
 type DKGBasic struct {
-	offChain      *offChain.OffChainDKG
-	onChain       *onChain.OnChainDKG
-	mtx           sync.Mutex
-	isOnChain     bool
-	logger        log.Logger
+	offChain  *offChain.OffChainDKG
+	onChain   *onChain.OnChainDKG
+	mtx       sync.Mutex
+	isOnChain bool
+	logger    log.Logger
+
+	// TODO:maybe better is to make the chan buf
 	blockNotifier chan bool
 }
 
