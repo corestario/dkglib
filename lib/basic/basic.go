@@ -73,9 +73,7 @@ type MockFirer struct{}
 func (m *MockFirer) FireEvent(event string, data events.EventData) {}
 
 func (m *DKGBasic) NewBlockNotify() {
-	if len(m.blockNotifier) < 1 {
-		m.blockNotifier <- true
-	}
+	m.blockNotifier <- true
 }
 
 func (m *DKGBasic) HandleOffChainShare(
