@@ -15,4 +15,5 @@ type DKG interface {
 	MsgQueue() chan *DKGDataMessage
 	GetLosers() []*tmtypes.Validator
 	StartDKGRound(*alias.ValidatorSet) error
+	NewBlockNotify()
 }
