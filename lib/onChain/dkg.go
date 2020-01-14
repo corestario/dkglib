@@ -42,12 +42,9 @@ func (m *OnChainDKG) GetVerifier() (types.Verifier, error) {
 func (m *OnChainDKG) ProcessBlock() (error, bool) {
 	for _, dataType := range []alias.DKGDataType{
 		alias.DKGPubKey,
+		alias.DKGCommits,
 		alias.DKGDeal,
 		alias.DKGResponse,
-		alias.DKGJustification,
-		alias.DKGCommits,
-		alias.DKGComplaint,
-		alias.DKGReconstructCommit,
 	} {
 		messages, err := m.getDKGMessages(dataType)
 		if err != nil {
@@ -57,18 +54,12 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 		switch dataType {
 		case alias.DKGPubKey:
 			handler = m.dealer.HandleDKGPubKey
+		case alias.DKGCommits:
+			handler = m.dealer.HandleDKGCommit
 		case alias.DKGDeal:
 			handler = m.dealer.HandleDKGDeal
 		case alias.DKGResponse:
 			handler = m.dealer.HandleDKGResponse
-		case alias.DKGJustification:
-			handler = m.dealer.HandleDKGJustification
-		case alias.DKGCommits:
-			handler = m.dealer.HandleDKGCommit
-		case alias.DKGComplaint:
-			handler = m.dealer.HandleDKGComplaint
-		case alias.DKGReconstructCommit:
-			handler = m.dealer.HandleDKGReconstructCommit
 		}
 		for _, msg := range messages {
 			if err := handler(msg.Data); err != nil {
