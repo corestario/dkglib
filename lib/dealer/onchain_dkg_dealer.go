@@ -3,8 +3,11 @@ package dealer
 import (
 	"bytes"
 	"encoding/gob"
+	"encoding/hex"
 	"errors"
 	"fmt"
+
+	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/corestario/dkglib/lib/alias"
 	tmtypes "github.com/tendermint/tendermint/alias"
@@ -81,27 +84,31 @@ func (d *onChainDealer) ProcessDeals() (error, bool) {
 	}
 
 	for dealerID, deal := range d.deals {
-		//party does not have to verify their own deal
-		if dealerID == d.participantID {
+		// Party does not have to verify its own deal.
+		if deal.Index == uint32(d.participantID) {
 			continue
 		}
 		resp, err := d.instance.ProcessDeal(deal)
 		if err != nil {
-			return err
+			return err, false
 		}
 
-		//commits verification
+		// Commits verification.
 		allVerifiers := d.instance.Verifiers()
 		verifier := allVerifiers[deal.Index]
 		commitsOK, _ := ProcessDealCommits(verifier, deal, arcade)
 
-		// if something goes wrong, party complains.
+		// If something goes wrong, party complains.
 		if !resp.Response.Status || !commitsOK {
-			config := d.instance.GetConfig()
-			longterm := config.Longterm
-			if err := arcade.DealComplaint(d.participantID, deal, longterm); err != nil {
-				log.Println("failed to complain:", err)
+			loserAddress := crypto.Address{}
+			addrBytes, err := hex.DecodeString(dealerID)
+			if err != nil {
+				return fmt.Errorf("failed to decode loser address: %w", err), false
 			}
+			if err := loserAddress.Unmarshal(addrBytes); err != nil {
+				return fmt.Errorf("failed to unmarshal loser address: %w", err), false
+			}
+			d.losers = append(d.losers, loserAddress)
 		}
 
 		var (
@@ -139,8 +146,8 @@ func (d *onChainDealer) ProcessDeals() (error, bool) {
 	return err, true
 }
 
-func ProcessDealCommits(verifier *vss.Verifier, deal *dkg.Deal, arcade *Blockchain) (bool, error) {
-	//verifier decryptDeal
+func (d *onChainDealer) ProcessDealCommits(verifier *vss.Verifier, deal *dkg.Deal) (bool, error) {
+	// Verifier decryptDeal.
 	decryptedDeal, err := verifier.DecryptDeal(deal.Deal)
 	if err != nil {
 		return false, err
@@ -151,10 +158,10 @@ func ProcessDealCommits(verifier *vss.Verifier, deal *dkg.Deal, arcade *Blockcha
 		return false, err
 	}
 
-	//check that commits on the chain and commits in the deal are met
+	// Check that commits on the chain and commits in the deal are met
 
 	if len(originalCommits) != len(decryptedDeal.Commitments) {
-		return false, errors.New("number of original commitmetns and number of commitments in the deal are not met")
+		return false, errors.New("number of original commitments and number of commitments in the deal are not met")
 	}
 
 	for i := range originalCommits {
