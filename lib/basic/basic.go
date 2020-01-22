@@ -1,13 +1,18 @@
 package basic
 
 import (
+	"errors"
 	"github.com/corestario/cosmos-utils/client/authtypes"
 	"github.com/corestario/cosmos-utils/client/context"
 	"github.com/corestario/cosmos-utils/client/utils"
+	"github.com/corestario/dkglib/lib/msgs"
 	"github.com/corestario/dkglib/lib/offChain"
 	"github.com/corestario/dkglib/lib/onChain"
 	dkg "github.com/corestario/dkglib/lib/types"
 	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/tendermint/go-amino"
 	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
@@ -16,6 +21,7 @@ import (
 	"github.com/tendermint/tendermint/types"
 	"os"
 	"sync"
+	"time"
 )
 
 type DKGBasic struct {
@@ -48,8 +54,33 @@ func NewDKGBasic(
 	if err != nil {
 		return nil, err
 	}
+	keysList, err := kb.List()
+	if err != nil {
+		return nil, err
+	}
+	if len(keysList) == 0 {
+		return nil, errors.New("account is not exist")
+	}
+
+	cliCtx.WithFromName(keysList[0].GetName()).WithPassphrase("12345678").WithFromAddress(keysList[0].GetAddress()).WithFrom(keysList[0].GetName())
+
+	dkgCdc := codec.New()
+	authTypes.RegisterCodec(cdc)
+	dkgCdc.RegisterConcrete(msgs.MsgSendDKGData{}, "randapp/SendDKGData", nil)
+	sdk.RegisterCodec(dkgCdc)
+	codec.RegisterCrypto(dkgCdc)
+
+	cliCtx.WithCodec(dkgCdc)
+
+	//accRetriever := authTypes.NewAccountRetriever(cliCtx)
+	//accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
+	//if err != nil {
+	//	fmt.Println("ERROR!!!!!!!!", err.Error())
+	//	return nil, err
+	//}
+
 	txBldr := authtypes.NewTxBuilder(
-		utils.GetTxEncoder(cdc),
+		utils.GetTxEncoder(dkgCdc),
 		0,
 		0,
 		400000,
@@ -129,9 +160,10 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 		panic(err)
 	}
 
+	ticker := time.NewTimer(3 * time.Second)
 	for {
 		select {
-		case <-m.blockNotifier:
+		case <-ticker.C:
 			if err, ok := m.onChain.ProcessBlock(); err != nil {
 				m.logger.Info("on-chain DKG process block failed", "error", err)
 				return false
