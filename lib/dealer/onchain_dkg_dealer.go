@@ -7,6 +7,8 @@ import (
 	"errors"
 	"fmt"
 
+	"go.dedis.ch/kyber/v3"
+
 	"github.com/tendermint/tendermint/crypto"
 
 	"github.com/corestario/dkglib/lib/alias"
@@ -96,7 +98,7 @@ func (d *onChainDealer) ProcessDeals() (error, bool) {
 		// Commits verification.
 		allVerifiers := d.instance.Verifiers()
 		verifier := allVerifiers[deal.Index]
-		commitsOK, _ := ProcessDealCommits(verifier, deal, arcade)
+		commitsOK, _ := d.ProcessDealCommits(verifier, deal)
 
 		// If something goes wrong, party complains.
 		if !resp.Response.Status || !commitsOK {
@@ -153,9 +155,17 @@ func (d *onChainDealer) ProcessDealCommits(verifier *vss.Verifier, deal *dkg.Dea
 		return false, err
 	}
 
-	originalCommits, err := arcade.GetCommitsByID(int(deal.Index))
-	if err != nil {
+	commitsData, ok := d.commits.indexToData[int(deal.Index)]
+	if !ok {
 		return false, err
+	}
+	var originalCommits []kyber.Point
+	for _, commitData := range commitsData {
+		commit, ok := commitData.(kyber.Point)
+		if !ok {
+			return false, fmt.Errorf("failed to cast commit data to commit type")
+		}
+		originalCommits = append(originalCommits, commit)
 	}
 
 	// Check that commits on the chain and commits in the deal are met

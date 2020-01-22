@@ -484,7 +484,7 @@ func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
 func (d *DKGDealer) GetJustifications() ([]*alias.DKGData, error) {
 	var messages []*alias.DKGData
 	d.logger.Debug("DKG delaer get justification start")
-	for _, peerResponses := range d.responses.data {
+	for _, peerResponses := range d.responses.addrToData {
 		for _, response := range peerResponses {
 			resp := response.(*dkg.Response)
 			var msg = &alias.DKGData{
@@ -576,7 +576,7 @@ func (d *DKGDealer) IsJustificationsReady() bool {
 }
 
 func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {
-	for _, peerJustifications := range d.justifications.data {
+	for _, peerJustifications := range d.justifications.addrToData {
 		for _, just := range peerJustifications {
 			justification := just.(*dkg.Justification)
 			if justification != nil {
@@ -654,7 +654,7 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 
 	var alreadyFinished = true
 	var messages []*alias.DKGData
-	for _, commitsFromAddr := range d.commits.data {
+	for _, commitsFromAddr := range d.commits.addrToData {
 		for _, c := range commitsFromAddr {
 			commits := c.(*dkg.SecretCommits)
 			var msg = &alias.DKGData{
@@ -728,7 +728,7 @@ func (d *DKGDealer) ProcessComplaints() (error, bool) {
 	}
 	d.logger.Info("dkgState: processing commits")
 
-	for _, peerComplaints := range d.complaints.data {
+	for _, peerComplaints := range d.complaints.addrToData {
 		for _, c := range peerComplaints {
 			complaint := c.(*dkg.ComplaintCommits)
 			var msg = &alias.DKGData{
@@ -791,7 +791,7 @@ func (d *DKGDealer) ProcessReconstructCommits() (error, bool) {
 		return nil, false
 	}
 
-	for _, peerReconstructCommits := range d.reconstructCommits.data {
+	for _, peerReconstructCommits := range d.reconstructCommits.addrToData {
 		for _, reconstructCommit := range peerReconstructCommits {
 			rc := reconstructCommit.(*dkg.ReconstructCommits)
 			if rc == nil {
@@ -899,23 +899,31 @@ type messageStore struct {
 	// Max number of messages of the same type from one peer per round
 	maxMessagesFromPeer int
 
-	// Map which store messages. Key is a peer's address, value is data
-	data map[string][]interface{}
+	// Map which stores messages. Key is a peer's address, value is data
+	addrToData map[string][]interface{}
+
+	// Map which stores messages (same as addrToData). Key is a peer's index, value is data.
+	indexToData map[int][]interface{}
 }
 
 func newMessageStore(n int) *messageStore {
 	return &messageStore{
 		maxMessagesFromPeer: n,
-		data:                make(map[string][]interface{}),
+		addrToData:          make(map[string][]interface{}),
 	}
 }
 
-func (ms *messageStore) add(addr string, val interface{}) {
-	data := ms.data[addr]
+func (ms *messageStore) add(addr string, index int, val interface{}) {
+	data := ms.addrToData[addr]
 	if len(data) == ms.maxMessagesFromPeer {
 		return
 	}
 	data = append(data, val)
-	ms.data[addr] = data
+	ms.addrToData[addr] = data
+
+	data = ms.indexToData[index]
+	data = append(data, val)
+	ms.addrToData[addr] = data
+
 	ms.messagesCount++
 }
