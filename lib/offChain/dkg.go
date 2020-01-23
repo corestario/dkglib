@@ -109,7 +109,6 @@ func (m *OffChainDKG) HandleOffChainShare(
 	validators *alias.ValidatorSet,
 	pubKey crypto.PubKey,
 ) (switchToOnChain bool) {
-	return true
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
