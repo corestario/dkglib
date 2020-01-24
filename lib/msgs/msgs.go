@@ -10,16 +10,11 @@ import (
 )
 
 type MsgSendDKGData struct {
-	Data  *alias.DKGData
-	Owner sdk.AccAddress
-}
-
-type RandDKGData struct {
 	Data  *alias.DKGData `json:"data"`
 	Owner sdk.AccAddress `json:"owner"`
 }
 
-func (m RandDKGData) String() string {
+func (m MsgSendDKGData) String() string {
 	return fmt.Sprintf("Data: %+v, Owner: %s", m.Data, m.Owner.String())
 }
 

@@ -78,6 +78,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 	}
 
 	if _, err := m.dealer.GetVerifier(); err == types.ErrDKGVerifierNotReady {
+		m.logger.Info("Verifier Not ready")
 		return nil, false
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
@@ -113,23 +114,27 @@ func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 	err := utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
 	tempTxBldr := m.txBldr.WithSequence(m.txBldr.Sequence() + 1)
 	m.txBldr = &tempTxBldr
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to broadcast msg: %v", err)
+	}
+
+	return nil
 }
 
-func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.RandDKGData, error) {
+func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.MsgSendDKGData, error) {
 	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
 	}
 
-	var data []*msgs.RandDKGData
+	var data []*msgs.MsgSendDKGData
 	var dec = gob.NewDecoder(bytes.NewBuffer(res))
 	if err := dec.Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to decode DKG data: %v", err)
 	}
 
 	if dataType == 0 {
-		m.logger.Info("DATA LEN=", data)
+		m.logger.Info("DKG DATA", "data", data, "dataLen", len(data))
 	}
 
 	return data, nil
