@@ -109,7 +109,6 @@ func (m *OffChainDKG) HandleOffChainShare(
 	validators *alias.ValidatorSet,
 	pubKey crypto.PubKey,
 ) (switchToOnChain bool) {
-	return true
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -185,6 +184,10 @@ func (m *OffChainDKG) HandleOffChainShare(
 		}
 	}
 	m.nextVerifier = verifier
+	// Only happens during the initialization of blockchain, when no validator existed yet.
+	if m.verifier.IsNil() {
+		m.verifier = verifier
+	}
 	m.changeHeight = (height + BlocksAhead) - ((height + BlocksAhead) % 5)
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
 

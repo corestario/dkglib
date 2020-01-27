@@ -8,7 +8,7 @@ require (
 	github.com/prometheus/common v0.4.0
 	github.com/tendermint/go-amino v0.15.1
 	github.com/tendermint/tendermint v0.32.8
-	go.dedis.ch/kyber/v3 v3.0.4
+	go.dedis.ch/kyber/v3 v3.0.9
 )
 
 replace golang.org/x/crypto => github.com/tendermint/crypto v0.0.0-20180820045704-3764759f34a5

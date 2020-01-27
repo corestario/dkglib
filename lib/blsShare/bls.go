@@ -233,6 +233,10 @@ func NewBLSVerifier(masterPubKey *share.PubPoly, sh *BLSShare, t, n int) *BLSVer
 	}
 }
 
+func (m *BLSVerifier) IsNil() bool {
+	return m == nil
+}
+
 func (m *BLSVerifier) Sign(data []byte) ([]byte, error) {
 	sig, err := tbls.Sign(m.suiteG1, m.Keypair.Priv, data)
 	if err != nil {
