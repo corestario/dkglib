@@ -317,3 +317,11 @@ func GetMockVerifier() verifierFunc {
 		return new(dkgtypes.MockVerifier)
 	}
 }
+
+func (m *OffChainDKG) IsOnChain() bool {
+	return false
+}
+
+func (m *OffChainDKG) ProcessBlock() (error, bool) {
+	return nil, false
+}

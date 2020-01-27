@@ -2,6 +2,7 @@ package basic
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -28,7 +29,7 @@ import (
 type DKGBasic struct {
 	offChain  *offChain.OffChainDKG
 	onChain   *onChain.OnChainDKG
-	mtx       sync.Mutex
+	mtx       sync.RWMutex
 	isOnChain bool
 	logger    log.Logger
 	onChainParams
@@ -48,6 +49,9 @@ func (m *DKGBasic) initOnChain() error {
 	if m.onChain != nil {
 		return nil
 	}
+
+	m.logger.Info("Init on-chain DKG")
+
 	cliCtx, err := context.NewContextWithDelay(m.onChainParams.chainID, m.onChainParams.nodeEndpoint, m.onChainParams.homeString)
 	if err != nil {
 		return err
@@ -72,17 +76,17 @@ func (m *DKGBasic) initOnChain() error {
 	//codec.RegisterCrypto(cdc)
 	cliCtx.WithCodec(m.onChainParams.cdc)
 
-	//accRetriever := authTypes.NewAccountRetriever(cliCtx)
-	//accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
-	//if err != nil {
-	//	fmt.Println("ERROR!!!!!!!!", err.Error())
-	//	return nil, err
-	//}
+	accRetriever := authTypes.NewAccountRetriever(cliCtx)
+	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
+	if err != nil {
+		fmt.Println("ERROR!!!!!!!!", err.Error())
+		return err
+	}
 
 	txBldr := authtypes.NewTxBuilder(
 		utils.GetTxEncoder(m.onChainParams.cdc),
-		0,
-		0,
+		accNumber,
+		accSequence,
 		400000,
 		0.0,
 		false,
@@ -136,39 +140,59 @@ func (m *DKGBasic) HandleOffChainShare(
 	pubKey crypto.PubKey,
 ) bool {
 	// check if on-chain dkg is running
-	m.mtx.Lock()
+	m.mtx.RLock()
+
 	if m.isOnChain {
-		m.mtx.Unlock()
+		m.mtx.RUnlock()
 		m.logger.Info("On-chain DKG is running, stop off-chain attempt")
 		return false
 	}
+	m.mtx.RUnlock()
 
 	switchToOnChain := m.offChain.HandleOffChainShare(dkgMsg, height, validators, pubKey)
 	// have to switch to on-chain
 	if switchToOnChain {
 		m.logger.Info("Switch to on-chain DKG")
+		m.mtx.Lock()
 		m.isOnChain = true
-		// unlock here for not to wait isOnChain check
 		m.mtx.Unlock()
+
+		// unlock here for not to wait isOnChain check
+		//m.mtx.Unlock()
 
 		err := m.initOnChain()
 		if err != nil {
 			m.logger.Error("could not init On chain dkg", "error", err)
 			return false
 		}
-		// try on-chain till success
-		for {
-			if m.runOnChainDKG(validators, m.logger) {
-				break
-			}
+
+		err = m.onChain.StartRound(
+			validators,
+			m.offChain.GetPrivValidator(),
+			&MockFirer{},
+			m.logger,
+			0,
+		)
+		if err != nil {
+			m.logger.Info("On-chain DKG start round failed", "error", err)
+			panic(err)
 		}
-		m.mtx.Lock()
-		m.isOnChain = false
-		m.mtx.Unlock()
-	} else {
-		m.mtx.Unlock()
+		// try on-chain till success
+		_ = func() {
+			//m.logger.Info("GO ROUTINE START")
+			//
+			//for {
+			//	if m.runOnChainDKG(validators, m.logger) {
+			//		break
+			//	}
+			//}
+			//m.logger.Info("GO ROUTINE BEFORE EXIT")
+			//m.mtx.Lock()
+			//m.isOnChain = false
+			//m.mtx.Unlock()
+		}
 	}
-	m.logger.Info("Handle off-chain share end")
+	//m.logger.Info("Handle off-chain share end")
 
 	// TODO check return statement
 	return false
@@ -188,10 +212,12 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 		panic(err)
 	}
 
-	ticker := time.NewTimer(3 * time.Second)
+	ticker := time.NewTicker(3 * time.Second)
 	for {
 		select {
 		case <-ticker.C:
+			m.logger.Info("DKG ticker in switch")
+
 			if err, ok := m.onChain.ProcessBlock(); err != nil {
 				m.logger.Info("on-chain DKG process block failed", "error", err)
 				return false
@@ -201,6 +227,9 @@ func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logg
 			} else {
 				//return false
 			}
+		default:
+			m.logger.Info("DKG default in switch")
+			time.Sleep(time.Second)
 		}
 	}
 }
@@ -227,4 +256,14 @@ func (m *DKGBasic) GetLosers() []*tmtypes.Validator {
 
 func (m *DKGBasic) StartDKGRound(validators *tmtypes.ValidatorSet) error {
 	return m.offChain.StartDKGRound(validators)
+}
+
+func (m *DKGBasic) IsOnChain() bool {
+	m.mtx.RLock()
+	defer m.mtx.RUnlock()
+	return m.isOnChain
+}
+
+func (m *DKGBasic) ProcessBlock() (error, bool) {
+	return m.onChain.ProcessBlock()
 }

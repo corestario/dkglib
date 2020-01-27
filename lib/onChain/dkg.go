@@ -40,6 +40,7 @@ func (m *OnChainDKG) GetVerifier() (types.Verifier, error) {
 }
 
 func (m *OnChainDKG) ProcessBlock() (error, bool) {
+	m.logger.Info("PROCESS BLOCK START")
 	for _, dataType := range []alias.DKGDataType{
 		alias.DKGPubKey,
 		alias.DKGDeal,
@@ -142,4 +143,8 @@ func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.MsgSend
 
 func (m *OnChainDKG) StartDKGRound(validators *tmtypes.ValidatorSet) error {
 	return nil
+}
+
+func (m *OnChainDKG) IsOnChain() bool {
+	return true
 }
