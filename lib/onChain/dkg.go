@@ -3,8 +3,11 @@ package onChain
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"os"
+
+	"github.com/tendermint/go-amino"
 
 	authtxb "github.com/corestario/cosmos-utils/client/authtypes"
 	"github.com/corestario/cosmos-utils/client/context"
@@ -13,18 +16,28 @@ import (
 	"github.com/corestario/dkglib/lib/dealer"
 	"github.com/corestario/dkglib/lib/msgs"
 	"github.com/corestario/dkglib/lib/types"
+	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
 )
 
 type OnChainDKG struct {
-	cli       *context.Context
-	txBldr    *authtxb.TxBuilder
-	dealer    dealer.Dealer
-	typesList []alias.DKGDataType
-	logger    log.Logger
+	cli           *context.Context
+	txBldr        *authtxb.TxBuilder
+	dealer        dealer.Dealer
+	typesList     []alias.DKGDataType
+	logger        log.Logger
+	OnChainParams *OnChainParams
+}
+
+type OnChainParams struct {
+	Cdc          *amino.Codec
+	ChainID      string
+	NodeEndpoint string
+	HomeString   string
 }
 
 func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG {
@@ -112,9 +125,41 @@ func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 		return fmt.Errorf("failed to validate basic: %v", err)
 	}
 
-	err := utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
-	tempTxBldr := m.txBldr.WithSequence(m.txBldr.Sequence() + 1)
-	m.txBldr = &tempTxBldr
+	kb, err := keys.NewKeyBaseFromDir(m.cli.Home)
+	if err != nil {
+		return err
+	}
+	keysList, err := kb.List()
+	if err != nil {
+		return err
+	}
+	if len(keysList) == 0 {
+		return errors.New("account is not exist")
+	}
+
+	accRetriever := authTypes.NewAccountRetriever(m.cli)
+	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
+	if err != nil {
+		fmt.Println("ERROR!!!!!!!!", err.Error())
+		return err
+	}
+	txBldr := authtxb.NewTxBuilder(
+		utils.GetTxEncoder(m.OnChainParams.Cdc),
+		accNumber,
+		accSequence,
+		400000*100,
+		0.0,
+		false,
+		m.OnChainParams.ChainID,
+		"",
+		nil,
+		nil,
+	).WithKeybase(kb)
+
+	tempTxBldr := m.txBldr.WithSequence(accSequence)
+	m.txBldr = &txBldr
+
+	err = utils.GenerateOrBroadcastMsgs(*m.cli, tempTxBldr, []sdk.Msg{msg}, false)
 	if err != nil {
 		return fmt.Errorf("failed to broadcast msg: %v", err)
 	}
