@@ -212,7 +212,7 @@ func TestHandleOffChainShare(t *testing.T) {
 func (m *OffChainDKG) startRound(validators *alias.ValidatorSet) error {
 
 	m.dkgRoundID++
-	m.Logger.Info("dkgState: starting round", "round_id", m.dkgRoundID)
+	m.Logger.Info("OffChainDKG: starting round", "round_id", m.dkgRoundID)
 	_, ok := m.dkgRoundToDealer[m.dkgRoundID]
 	if !ok {
 		dealer := m.newDKGDealer(validators, m.privValidator, m.sendSignedMessage, m.evsw, m.Logger, m.dkgRoundID)
@@ -237,13 +237,17 @@ func (m *OffChainDKG) sendDKGMessage(msg *dkgalias.DKGData) {
 	}
 }
 
-func (m *OffChainDKG) sendSignedMessage(data *dkgalias.DKGData) error {
-	if err := m.Sign(data); err != nil {
+func (m *OffChainDKG) sendSignedMessage(data []*dkgalias.DKGData) error {
+	if len(data) < 1 {
+		return errors.New("no data passed to this call")
+	}
+	item := data[0]
+	if err := m.Sign(item); err != nil {
 		m.Logger.Debug("Off-chain DKG: failed to sign data", "error", err)
 		return err
 	}
-	m.Logger.Info("DKG: msg signed with signature", "signature", hex.EncodeToString(data.Signature))
-	m.sendDKGMessage(data)
+	m.Logger.Info("DKG: msg signed with signature", "signature", hex.EncodeToString(item.Signature))
+	m.sendDKGMessage(item)
 	return nil
 }
 
