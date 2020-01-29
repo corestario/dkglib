@@ -172,9 +172,10 @@ func (m *DKGBasic) HandleOffChainShare(
 		}
 
 		go func() {
+			t := time.NewTicker(time.Second * 5)
 			for {
 				select {
-				case <-m.blockNotifier:
+				case <-t.C:
 					m.logger.Info("DKG ticker in switch")
 					if err, ok := m.onChain.ProcessBlock(); err != nil {
 						m.logger.Info("on-chain DKG process block failed", "error", err)

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/tendermint/go-amino"
 
@@ -25,12 +26,13 @@ import (
 )
 
 type OnChainDKG struct {
-	cli           *context.Context
-	txBldr        *authtxb.TxBuilder
-	dealer        dealer.Dealer
-	typesList     []alias.DKGDataType
-	logger        log.Logger
-	OnChainParams *OnChainParams
+	cli            *context.Context
+	txBldr         *authtxb.TxBuilder
+	dealer         dealer.Dealer
+	typesList      []alias.DKGDataType
+	logger         log.Logger
+	OnChainParams  *OnChainParams
+	uniqueMessages map[string]bool
 }
 
 type OnChainParams struct {
@@ -42,9 +44,10 @@ type OnChainParams struct {
 
 func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG {
 	return &OnChainDKG{
-		cli:    cli,
-		txBldr: txBldr,
-		logger: log.NewTMLogger(os.Stdout),
+		cli:            cli,
+		txBldr:         txBldr,
+		logger:         log.NewTMLogger(os.Stdout),
+		uniqueMessages: make(map[string]bool),
 	}
 }
 
@@ -120,6 +123,14 @@ func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
 }
 
 func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
+	//uid := fmt.Sprintf("%d-%d-%d", data.RoundID, data.ToIndex, data.Type)
+	//if _, ok := m.uniqueMessages[uid]; ok {
+	//	return nil
+	//}
+	//m.uniqueMessages[uid] = true
+
+	time.Sleep(time.Second * 5)
+
 	msg := msgs.NewMsgSendDKGData(data, m.cli.GetFromAddress())
 	if err := msg.ValidateBasic(); err != nil {
 		return fmt.Errorf("failed to validate basic: %v", err)
@@ -156,10 +167,10 @@ func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 		nil,
 	).WithKeybase(kb)
 
-	tempTxBldr := m.txBldr.WithSequence(accSequence)
+	//tempTxBldr := m.txBldr.WithSequence(accSequence)
 	m.txBldr = &txBldr
 
-	err = utils.GenerateOrBroadcastMsgs(*m.cli, tempTxBldr, []sdk.Msg{msg}, false)
+	err = utils.GenerateOrBroadcastMsgs(*m.cli, txBldr, []sdk.Msg{msg}, false)
 	if err != nil {
 		return fmt.Errorf("failed to broadcast msg: %v", err)
 	}
