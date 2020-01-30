@@ -529,6 +529,8 @@ func (d *DKGDealer) HandleDKGJustification(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessJustifications() (error, bool) {
 	if !d.IsJustificationsReady() {
+		d.logger.Debug("justifications are not ready")
+
 		return nil, false
 	}
 	d.logger.Info("dkgState: processing justifications")
@@ -642,6 +644,7 @@ func (d *DKGDealer) HandleDKGCommit(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessCommits() (error, bool) {
 	if d.commits.messagesCount < len(d.instance.QUAL()) {
+		d.logger.Debug("commits messages count is not enough", "commits", d.commits.messagesCount, "qual len", len(d.instance.QUAL()))
 		return nil, false
 	}
 	d.logger.Info("dkgState: processing commits")
@@ -718,6 +721,7 @@ func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessComplaints() (error, bool) {
 	if d.complaints.messagesCount < len(d.instance.QUAL())-1 {
+		d.logger.Debug("complaints messages count is not enough", "commits", d.complaints.messagesCount, "qual len", len(d.instance.QUAL())-1)
 		return nil, false
 	}
 	d.logger.Info("dkgState: processing commits")

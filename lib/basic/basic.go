@@ -1,7 +1,7 @@
 package basic
 
 import (
-	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -24,6 +24,9 @@ import (
 	"github.com/tendermint/tendermint/types"
 )
 
+// TODO
+const PASSPHRASE = "12345678"
+
 type DKGBasic struct {
 	offChain      *offChain.OffChainDKG
 	onChain       *onChain.OnChainDKG
@@ -32,60 +35,6 @@ type DKGBasic struct {
 	logger        log.Logger
 	OnChainParams *onChain.OnChainParams
 	blockNotifier chan bool
-}
-
-func (m *DKGBasic) initOnChain() error {
-	if m.onChain != nil {
-		return nil
-	}
-
-	m.logger.Info("Init on-chain DKG")
-
-	cliCtx, err := context.NewContextWithDelay(m.OnChainParams.ChainID, m.OnChainParams.NodeEndpoint, m.OnChainParams.HomeString)
-	if err != nil {
-		return err
-	}
-
-	kb, err := keys.NewKeyBaseFromDir(cliCtx.Home)
-	if err != nil {
-		return err
-	}
-	keysList, err := kb.List()
-	if err != nil {
-		return err
-	}
-	if len(keysList) == 0 {
-		return errors.New("account is not exist")
-	}
-
-	cliCtx.WithFromName(keysList[0].GetName()).WithPassphrase("12345678").WithFromAddress(keysList[0].GetAddress()).WithFrom(keysList[0].GetName())
-	authTypes.RegisterCodec(m.OnChainParams.Cdc)
-	m.OnChainParams.Cdc.RegisterConcrete(msgs.MsgSendDKGData{}, "randapp/SendDKGData", nil)
-	sdk.RegisterCodec(m.OnChainParams.Cdc)
-	cliCtx.WithCodec(m.OnChainParams.Cdc)
-
-	accRetriever := authTypes.NewAccountRetriever(cliCtx)
-	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
-	if err != nil {
-		return err
-	}
-
-	txBldr := authtypes.NewTxBuilder(
-		utils.GetTxEncoder(m.OnChainParams.Cdc),
-		accNumber,
-		accSequence,
-		400000*100,
-		0.0,
-		false,
-		m.OnChainParams.ChainID,
-		"",
-		nil,
-		nil,
-	).WithKeybase(kb)
-
-	m.onChain = onChain.NewOnChainDKG(cliCtx, &txBldr)
-	m.onChain.OnChainParams = m.OnChainParams
-	return nil
 }
 
 var _ dkg.DKG = &DKGBasic{}
@@ -147,9 +96,6 @@ func (m *DKGBasic) HandleOffChainShare(
 		m.isOnChain = true
 		m.mtx.Unlock()
 
-		// unlock here for not to wait isOnChain check
-		//m.mtx.Unlock()
-
 		err := m.initOnChain()
 		if err != nil {
 			m.logger.Error("could not init On chain dkg", "error", err)
@@ -185,8 +131,6 @@ func (m *DKGBasic) HandleOffChainShare(
 						m.isOnChain = false
 						m.mtx.Unlock()
 						return
-					} else {
-						//return false
 					}
 				default:
 					time.Sleep(time.Second * 1)
@@ -194,63 +138,12 @@ func (m *DKGBasic) HandleOffChainShare(
 			}
 		}()
 		// try on-chain till success
-		_ = func() {
-			//m.logger.Info("GO ROUTINE START")
-			//
-			//for {
-			//	if m.runOnChainDKG(validators, m.logger) {
-			//		break
-			//	}
-			//}
-			//m.logger.Info("GO ROUTINE BEFORE EXIT")
-			//m.mtx.Lock()
-			//m.isOnChain = false
-			//m.mtx.Unlock()
-		}
 	}
-	//m.logger.Info("Handle off-chain share end")
 
-	// TODO check return statement
-	return false
+	// returning bool to implement interface, return value, probably, will not be used
+	return true
 }
 
-/*
-func (m *DKGBasic) runOnChainDKG(validators *types.ValidatorSet, logger log.Logger) bool {
-	m.logger.Info("Run on-chain DKG")
-	err := m.onChain.StartRound(
-		validators,
-		m.offChain.GetPrivValidator(),
-		&MockFirer{},
-		logger,
-		0,
-	)
-	if err != nil {
-		m.logger.Info("On-chain DKG start round failed", "error", err)
-		panic(err)
-	}
-
-	ticker := time.NewTicker(3 * time.Second)
-	for {
-		select {
-		case <-ticker.C:
-			m.logger.Info("DKG ticker in switch")
-
-			if err, ok := m.onChain.ProcessBlock(); err != nil {
-				m.logger.Info("on-chain DKG process block failed", "error", err)
-				return false
-			} else if ok {
-				m.logger.Info("All instances finished on-chain DKG, O.K.")
-				return true
-			} else {
-				//return false
-			}
-		default:
-			m.logger.Info("DKG default in switch")
-			time.Sleep(time.Second)
-		}
-	}
-}
-*/
 func (m *DKGBasic) CheckDKGTime(height int64, validators *types.ValidatorSet) {
 	m.offChain.CheckDKGTime(height, validators)
 }
@@ -283,4 +176,67 @@ func (m *DKGBasic) IsOnChain() bool {
 
 func (m *DKGBasic) ProcessBlock() (error, bool) {
 	return m.onChain.ProcessBlock()
+}
+
+func (m *DKGBasic) initOnChain() error {
+	if m.onChain != nil {
+		return nil
+	}
+
+	m.logger.Info("Init on-chain DKG")
+
+	cliCtx, err := context.NewContextWithDelay(m.OnChainParams.ChainID, m.OnChainParams.NodeEndpoint, m.OnChainParams.HomeString)
+	if err != nil {
+		m.logger.Error("Init on-chain DKG error", "function", "NewContextWithDelay", "error", err)
+		return err
+	}
+
+	kb, err := keys.NewKeyBaseFromDir(cliCtx.Home)
+	if err != nil {
+		m.logger.Error("Init on-chain DKG error", "function", "NewKeyBaseFromDir", "error", err)
+		return err
+	}
+	keysList, err := kb.List()
+	if err != nil {
+		m.logger.Error("Init on-chain DKG error", "function", "List", "error", err)
+		return err
+	}
+	if len(keysList) == 0 {
+		err := fmt.Errorf("key list error: account does not exist")
+		m.logger.Error("Init on-chain DKG error", "error", err)
+		return err
+	}
+
+	cliCtx.WithFromName(keysList[0].GetName()).
+		WithPassphrase(PASSPHRASE).
+		WithFromAddress(keysList[0].GetAddress()).
+		WithFrom(keysList[0].GetName())
+	authTypes.RegisterCodec(m.OnChainParams.Cdc)
+	m.OnChainParams.Cdc.RegisterConcrete(msgs.MsgSendDKGData{}, msgs.MsgSendDKGDataTypeName, nil)
+	sdk.RegisterCodec(m.OnChainParams.Cdc)
+	cliCtx.WithCodec(m.OnChainParams.Cdc)
+
+	accRetriever := authTypes.NewAccountRetriever(cliCtx)
+	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
+	if err != nil {
+		m.logger.Error("Init on-chain DKG error", "function", "GetAccountNumberSequence", "error", err)
+		return err
+	}
+
+	txBldr := authtypes.NewTxBuilder(
+		utils.GetTxEncoder(m.OnChainParams.Cdc),
+		accNumber,
+		accSequence,
+		400000*100,
+		0.0,
+		false,
+		m.OnChainParams.ChainID,
+		"",
+		nil,
+		nil,
+	).WithKeybase(kb)
+
+	m.onChain = onChain.NewOnChainDKG(cliCtx, &txBldr)
+	m.onChain.OnChainParams = m.OnChainParams
+	return nil
 }

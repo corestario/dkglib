@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"testing"
 
 	dkgalias "github.com/corestario/dkglib/lib/alias"
 	"github.com/corestario/dkglib/lib/blsShare"
@@ -19,15 +18,8 @@ import (
 )
 
 const (
-	BlocksAhead = 20 // Agree to swap verifier after around this number of blocks.
-	//DefaultDKGNumBlocks sets how often node should make DKG(in blocks)
-	DefaultDKGNumBlocks = 100
-)
-
-var _ dkgtypes.DKG = &OffChainDKG{}
-
-var (
-	ErrVerifierNotReady = errors.New("verifier not ready yet")
+	BlocksAhead         = 20  // Agree to swap verifier after around this number of blocks.
+	DefaultDKGNumBlocks = 100 //DefaultDKGNumBlocks sets how often node should make DKG(in blocks)
 )
 
 type OffChainDKG struct {
@@ -37,8 +29,7 @@ type OffChainDKG struct {
 	nextVerifier dkgtypes.Verifier
 	changeHeight int64
 
-	// message queue used for dkgState-related messages.
-	dkgMsgQueue      chan *dkgtypes.DKGDataMessage
+	dkgMsgQueue      chan *dkgtypes.DKGDataMessage // message queue used for dkgState-related messages.
 	dkgRoundToDealer map[int]dkglib.Dealer
 	dkgRoundID       int
 	dkgNumBlocks     int64
@@ -49,6 +40,8 @@ type OffChainDKG struct {
 	evsw    events.EventSwitch
 	chainID string
 }
+
+var _ dkgtypes.DKG = &OffChainDKG{}
 
 func NewOffChainDKG(evsw events.EventSwitch, chainID string, options ...DKGOption) *OffChainDKG {
 	dkg := &OffChainDKG{
@@ -193,24 +186,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 	return false
 }
 
-func TestHandleOffChainShare(t *testing.T) {
-	evsw := events.NewEventSwitch()
-	offChain := NewOffChainDKG(evsw, "chain")
-	msg := dkgtypes.DKGDataMessage{
-		Data: &dkgalias.DKGData{
-			Type:        dkgalias.DKGDeal,
-			Addr:        []byte{},
-			RoundID:     0,
-			Data:        []byte{},
-			ToIndex:     1,
-			NumEntities: 1,
-		},
-	}
-	offChain.HandleOffChainShare(&msg, 0, nil, nil)
-}
-
 func (m *OffChainDKG) startRound(validators *alias.ValidatorSet) error {
-
 	m.dkgRoundID++
 	m.Logger.Info("OffChainDKG: starting round", "round_id", m.dkgRoundID)
 	_, ok := m.dkgRoundToDealer[m.dkgRoundID]
