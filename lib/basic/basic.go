@@ -2,7 +2,6 @@ package basic
 
 import (
 	"errors"
-	"fmt"
 	"os"
 	"sync"
 	"time"
@@ -32,8 +31,6 @@ type DKGBasic struct {
 	isOnChain     bool
 	logger        log.Logger
 	OnChainParams *onChain.OnChainParams
-
-	// TODO:maybe better is to make the chan buf
 	blockNotifier chan bool
 }
 
@@ -65,13 +62,11 @@ func (m *DKGBasic) initOnChain() error {
 	authTypes.RegisterCodec(m.OnChainParams.Cdc)
 	m.OnChainParams.Cdc.RegisterConcrete(msgs.MsgSendDKGData{}, "randapp/SendDKGData", nil)
 	sdk.RegisterCodec(m.OnChainParams.Cdc)
-	//codec.RegisterCrypto(cdc)
 	cliCtx.WithCodec(m.OnChainParams.Cdc)
 
 	accRetriever := authTypes.NewAccountRetriever(cliCtx)
 	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
 	if err != nil {
-		fmt.Println("ERROR!!!!!!!!", err.Error())
 		return err
 	}
 
@@ -107,7 +102,7 @@ func NewDKGBasic(
 	d := &DKGBasic{
 		offChain:      offChain.NewOffChainDKG(evsw, chainID, options...),
 		logger:        logger,
-		blockNotifier: make(chan bool),
+		blockNotifier: make(chan bool, 2),
 		OnChainParams: &onChain.OnChainParams{
 			Cdc:          cdc,
 			ChainID:      chainID,
@@ -123,7 +118,9 @@ type MockFirer struct{}
 func (m *MockFirer) FireEvent(event string, data events.EventData) {}
 
 func (m *DKGBasic) NewBlockNotify() {
-	m.blockNotifier <- true
+	if len(m.blockNotifier) == 0 {
+		m.blockNotifier <- true
+	}
 }
 
 func (m *DKGBasic) HandleOffChainShare(
@@ -172,10 +169,9 @@ func (m *DKGBasic) HandleOffChainShare(
 		}
 
 		go func() {
-			t := time.NewTicker(time.Second * 5)
 			for {
 				select {
-				case <-t.C:
+				case <-m.blockNotifier:
 					m.logger.Info("DKG ticker in switch")
 					if err, ok := m.onChain.ProcessBlock(); err != nil {
 						m.logger.Info("on-chain DKG process block failed", "error", err)
@@ -193,8 +189,7 @@ func (m *DKGBasic) HandleOffChainShare(
 						//return false
 					}
 				default:
-					m.logger.Info("DKG default in switch")
-					time.Sleep(time.Second * 3)
+					time.Sleep(time.Second * 1)
 				}
 			}
 		}()

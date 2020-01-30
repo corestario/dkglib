@@ -123,12 +123,6 @@ func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
 }
 
 func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
-	//uid := fmt.Sprintf("%d-%d-%d", data.RoundID, data.ToIndex, data.Type)
-	//if _, ok := m.uniqueMessages[uid]; ok {
-	//	return nil
-	//}
-	//m.uniqueMessages[uid] = true
-
 	var messages []sdk.Msg
 	for _, item := range data {
 		msg := msgs.NewMsgSendDKGData(item, m.cli.GetFromAddress())
