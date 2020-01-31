@@ -2,7 +2,6 @@ package offChain
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"sync"
 
@@ -102,6 +101,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 	validators *alias.ValidatorSet,
 	pubKey crypto.PubKey,
 ) (switchToOnChain bool) {
+	// TODO
 	return true
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
@@ -215,7 +215,7 @@ func (m *OffChainDKG) sendDKGMessage(msg *dkgalias.DKGData) {
 
 func (m *OffChainDKG) sendSignedMessage(data []*dkgalias.DKGData) error {
 	if len(data) < 1 {
-		return errors.New("no data passed to this call")
+		return fmt.Errorf("send signed message error: no data passed to this call")
 	}
 	item := data[0]
 	if err := m.Sign(item); err != nil {

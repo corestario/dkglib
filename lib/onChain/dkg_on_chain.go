@@ -3,7 +3,6 @@ package onChain
 import (
 	"bytes"
 	"encoding/gob"
-	"errors"
 	"fmt"
 	"os"
 
@@ -55,7 +54,6 @@ func (m *OnChainDKG) GetVerifier() (types.Verifier, error) {
 }
 
 func (m *OnChainDKG) ProcessBlock() (error, bool) {
-	m.logger.Info("PROCESS BLOCK START")
 	for _, dataType := range []alias.DKGDataType{
 		alias.DKGPubKey,
 		alias.DKGDeal,
@@ -94,7 +92,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 	}
 
 	if _, err := m.dealer.GetVerifier(); err == types.ErrDKGVerifierNotReady {
-		m.logger.Info("Verifier Not ready")
+		m.logger.Debug("Process Block: Verifier Not ready")
 		return nil, false
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
@@ -109,9 +107,9 @@ func (m *OnChainDKG) StartRound(
 	eventFirer events.Fireable,
 	logger log.Logger,
 	startRound int) error {
-	fmt.Println(">>>>>>>>>>>>>>", "@@@@@@@@@@@@@@@@@@@@@@@@@@")
 	m.dealer = dealer.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
 	if err := m.dealer.Start(); err != nil {
+		m.logger.Debug("Start on-chain dkg")
 		return fmt.Errorf("failed to start dealer: %v", err)
 	}
 
@@ -134,20 +132,24 @@ func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
 
 	kb, err := keys.NewKeyBaseFromDir(m.cli.Home)
 	if err != nil {
+		m.logger.Error("on-chain DKG send msg error", "function", "NewKeyBaseFromDir", "error", err)
 		return err
 	}
 	keysList, err := kb.List()
 	if err != nil {
+		m.logger.Error("on-chain DKG send msg error", "function", "List", "error", err)
 		return err
 	}
 	if len(keysList) == 0 {
-		return errors.New("account is not exist")
+		err := fmt.Errorf("key list error: account does not exist")
+		m.logger.Error("on-chain DKG send msg error", "error", err)
+		return err
 	}
 
 	accRetriever := authTypes.NewAccountRetriever(m.cli)
 	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
 	if err != nil {
-		fmt.Println("ERROR!!!!!!!!", err.Error())
+		m.logger.Error("on-chain DKG send msg error", "function", "GetAccountNumberSequence", "error", err)
 		return err
 	}
 	txBldr := authtxb.NewTxBuilder(
@@ -163,7 +165,6 @@ func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
 		nil,
 	).WithKeybase(kb)
 
-	//tempTxBldr := m.txBldr.WithSequence(accSequence)
 	m.txBldr = &txBldr
 
 	err = utils.GenerateOrBroadcastMsgs(*m.cli, txBldr, messages, false)
@@ -184,10 +185,6 @@ func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.MsgSend
 	var dec = gob.NewDecoder(bytes.NewBuffer(res))
 	if err := dec.Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to decode DKG data: %v", err)
-	}
-
-	if dataType == 0 {
-		m.logger.Info("DKG DATA", "data", data, "dataLen", len(data))
 	}
 
 	return data, nil
