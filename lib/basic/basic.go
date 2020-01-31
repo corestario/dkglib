@@ -50,8 +50,8 @@ func NewDKGBasic(
 	cdc *amino.Codec,
 	chainID string,
 	nodeEndpoint string,
-	passPhrase string,
 	homeString string,
+	passPhrase string,
 	options ...offChain.DKGOption,
 ) (dkg.DKG, error) {
 	logger := log.NewTMLogger(os.Stdout)
