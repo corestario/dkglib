@@ -101,8 +101,6 @@ func (m *OffChainDKG) HandleOffChainShare(
 	validators *alias.ValidatorSet,
 	pubKey crypto.PubKey,
 ) (switchToOnChain bool) {
-	// TODO
-	return true
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -181,7 +179,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 	m.changeHeight = (height + BlocksAhead) - ((height + BlocksAhead) % 5)
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
 
-	m.Logger.Debug("handle off-chain share success")
+	m.Logger.Info("handle off-chain share success")
 
 	return false
 }
@@ -217,13 +215,17 @@ func (m *OffChainDKG) sendSignedMessage(data []*dkgalias.DKGData) error {
 	if len(data) < 1 {
 		return fmt.Errorf("send signed message error: no data passed to this call")
 	}
-	item := data[0]
-	if err := m.Sign(item); err != nil {
-		m.Logger.Debug("Off-chain DKG: failed to sign data", "error", err)
-		return err
+
+	for _, v := range data {
+		item := v
+		if err := m.Sign(item); err != nil {
+			m.Logger.Debug("Off-chain DKG: failed to sign data", "error", err)
+			return err
+		}
+		m.Logger.Info("DKG: msg signed with signature", "signature", hex.EncodeToString(item.Signature))
+		m.sendDKGMessage(item)
 	}
-	m.Logger.Info("DKG: msg signed with signature", "signature", hex.EncodeToString(item.Signature))
-	m.sendDKGMessage(item)
+
 	return nil
 }
 
@@ -300,8 +302,4 @@ func GetMockVerifier() verifierFunc {
 
 func (m *OffChainDKG) IsOnChain() bool {
 	return false
-}
-
-func (m *OffChainDKG) ProcessBlock() (error, bool) {
-	return nil, false
 }

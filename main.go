@@ -86,7 +86,7 @@ func main() {
 	for {
 		select {
 		case <-tk.C:
-			if err, ok := oc.ProcessBlock(); err != nil {
+			if err, ok := oc.ProcessBlock(0); err != nil {
 				panic(fmt.Sprintf("failed to start round: %v", err))
 			} else if ok {
 				fmt.Println("All instances finished DKG, O.K.")

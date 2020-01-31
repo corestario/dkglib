@@ -24,17 +24,23 @@ import (
 	"github.com/tendermint/tendermint/types"
 )
 
-// TODO
-const PASSPHRASE = "12345678"
-
 type DKGBasic struct {
 	offChain      *offChain.OffChainDKG
 	onChain       *onChain.OnChainDKG
 	mtx           sync.RWMutex
 	isOnChain     bool
 	logger        log.Logger
-	OnChainParams *onChain.OnChainParams
+	OnChainParams OnChainParams
 	blockNotifier chan bool
+	roundID       int
+}
+
+type OnChainParams struct {
+	Cdc          *amino.Codec
+	ChainID      string
+	NodeEndpoint string
+	HomeString   string
+	PassPhrase   string
 }
 
 var _ dkg.DKG = &DKGBasic{}
@@ -44,6 +50,7 @@ func NewDKGBasic(
 	cdc *amino.Codec,
 	chainID string,
 	nodeEndpoint string,
+	passPhrase string,
 	homeString string,
 	options ...offChain.DKGOption,
 ) (dkg.DKG, error) {
@@ -52,11 +59,12 @@ func NewDKGBasic(
 		offChain:      offChain.NewOffChainDKG(evsw, chainID, options...),
 		logger:        logger,
 		blockNotifier: make(chan bool, 2),
-		OnChainParams: &onChain.OnChainParams{
+		OnChainParams: OnChainParams{
 			Cdc:          cdc,
 			ChainID:      chainID,
 			NodeEndpoint: nodeEndpoint,
 			HomeString:   homeString,
+			PassPhrase:   passPhrase,
 		},
 	}
 	return d, nil
@@ -107,19 +115,21 @@ func (m *DKGBasic) HandleOffChainShare(
 			m.offChain.GetPrivValidator(),
 			&MockFirer{},
 			m.logger,
-			0,
+			m.roundID,
 		)
 		if err != nil {
 			m.logger.Info("On-chain DKG start round failed", "error", err)
 			panic(err)
 		}
+		roundID := m.roundID
+		m.roundID++
 
 		go func() {
 			for {
 				select {
 				case <-m.blockNotifier:
 					m.logger.Info("DKG ticker in switch")
-					if err, ok := m.onChain.ProcessBlock(); err != nil {
+					if err, ok := m.onChain.ProcessBlock(roundID); err != nil {
 						m.logger.Info("on-chain DKG process block failed", "error", err)
 						m.mtx.Lock()
 						m.isOnChain = false
@@ -174,10 +184,6 @@ func (m *DKGBasic) IsOnChain() bool {
 	return m.isOnChain
 }
 
-func (m *DKGBasic) ProcessBlock() (error, bool) {
-	return m.onChain.ProcessBlock()
-}
-
 func (m *DKGBasic) initOnChain() error {
 	if m.onChain != nil {
 		return nil
@@ -208,7 +214,7 @@ func (m *DKGBasic) initOnChain() error {
 	}
 
 	cliCtx.WithFromName(keysList[0].GetName()).
-		WithPassphrase(PASSPHRASE).
+		WithPassphrase(m.OnChainParams.PassPhrase).
 		WithFromAddress(keysList[0].GetAddress()).
 		WithFrom(keysList[0].GetName())
 	authTypes.RegisterCodec(m.OnChainParams.Cdc)
@@ -237,6 +243,5 @@ func (m *DKGBasic) initOnChain() error {
 	).WithKeybase(kb)
 
 	m.onChain = onChain.NewOnChainDKG(cliCtx, &txBldr)
-	m.onChain.OnChainParams = m.OnChainParams
 	return nil
 }

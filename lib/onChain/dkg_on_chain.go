@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/tendermint/go-amino"
-
 	authtxb "github.com/corestario/cosmos-utils/client/authtypes"
 	"github.com/corestario/cosmos-utils/client/context"
 	"github.com/corestario/cosmos-utils/client/utils"
@@ -24,28 +22,18 @@ import (
 )
 
 type OnChainDKG struct {
-	cli            *context.Context
-	txBldr         *authtxb.TxBuilder
-	dealer         dealer.Dealer
-	typesList      []alias.DKGDataType
-	logger         log.Logger
-	OnChainParams  *OnChainParams
-	uniqueMessages map[string]bool
-}
-
-type OnChainParams struct {
-	Cdc          *amino.Codec
-	ChainID      string
-	NodeEndpoint string
-	HomeString   string
+	cli       *context.Context
+	txBldr    *authtxb.TxBuilder
+	dealer    dealer.Dealer
+	typesList []alias.DKGDataType
+	logger    log.Logger
 }
 
 func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG {
 	return &OnChainDKG{
-		cli:            cli,
-		txBldr:         txBldr,
-		logger:         log.NewTMLogger(os.Stdout),
-		uniqueMessages: make(map[string]bool),
+		cli:    cli,
+		txBldr: txBldr,
+		logger: log.NewTMLogger(os.Stdout),
 	}
 }
 
@@ -53,7 +41,7 @@ func (m *OnChainDKG) GetVerifier() (types.Verifier, error) {
 	return m.dealer.GetVerifier()
 }
 
-func (m *OnChainDKG) ProcessBlock() (error, bool) {
+func (m *OnChainDKG) ProcessBlock(roundID int) (error, bool) {
 	for _, dataType := range []alias.DKGDataType{
 		alias.DKGPubKey,
 		alias.DKGDeal,
@@ -63,7 +51,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 		alias.DKGComplaint,
 		alias.DKGReconstructCommit,
 	} {
-		messages, err := m.getDKGMessages(dataType)
+		messages, err := m.getDKGMessages(dataType, roundID)
 		if err != nil {
 			return fmt.Errorf("failed to getDKGMessages: %v", err), false
 		}
@@ -92,7 +80,6 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 	}
 
 	if _, err := m.dealer.GetVerifier(); err == types.ErrDKGVerifierNotReady {
-		m.logger.Debug("Process Block: Verifier Not ready")
 		return nil, false
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
@@ -123,6 +110,7 @@ func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
 func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
 	var messages []sdk.Msg
 	for _, item := range data {
+		item := item
 		msg := msgs.NewMsgSendDKGData(item, m.cli.GetFromAddress())
 		if err := msg.ValidateBasic(); err != nil {
 			return fmt.Errorf("failed to validate basic: %v", err)
@@ -147,27 +135,16 @@ func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
 	}
 
 	accRetriever := authTypes.NewAccountRetriever(m.cli)
-	accNumber, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
+	_, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
 	if err != nil {
 		m.logger.Error("on-chain DKG send msg error", "function", "GetAccountNumberSequence", "error", err)
 		return err
 	}
-	txBldr := authtxb.NewTxBuilder(
-		utils.GetTxEncoder(m.OnChainParams.Cdc),
-		accNumber,
-		accSequence,
-		400000*100,
-		0.0,
-		false,
-		m.OnChainParams.ChainID,
-		"",
-		nil,
-		nil,
-	).WithKeybase(kb)
 
-	m.txBldr = &txBldr
+	tmpTxBldr := m.txBldr.WithSequence(accSequence)
+	m.txBldr = &tmpTxBldr
 
-	err = utils.GenerateOrBroadcastMsgs(*m.cli, txBldr, messages, false)
+	err = utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, messages, false)
 	if err != nil {
 		return fmt.Errorf("failed to broadcast msg: %v", err)
 	}
@@ -175,8 +152,8 @@ func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
 	return nil
 }
 
-func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.MsgSendDKGData, error) {
-	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
+func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType, roundID int) ([]*msgs.MsgSendDKGData, error) {
+	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d/%d", dataType, roundID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
 	}
