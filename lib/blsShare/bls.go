@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -61,13 +60,13 @@ type BLSKeyring struct {
 // NewBLSKeyring generates a tbls keyring (master key, t-of-n shares).
 func NewBLSKeyring(t, n int) (*BLSKeyring, error) {
 	if t > n {
-		return nil, errors.New("threshold can not be greater that number of holders")
+		return nil, fmt.Errorf("threshold can not be greater that number of holders")
 	}
 	if t < 1 {
-		return nil, errors.New("threshold can not be < 1")
+		return nil, fmt.Errorf("threshold can not be < 1")
 	}
 	if n < 1 {
-		return nil, errors.New("number of holders can not be < 1")
+		return nil, fmt.Errorf("number of holders can not be < 1")
 	}
 	var (
 		suite   = bn256.NewSuite()
@@ -152,9 +151,12 @@ func LoadBLSShareJSON(path string) (*BLSShareJSON, error) {
 	var sh BLSShareJSON
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("could not load bls share: error open file: %v", err)
 	}
 	err = json.NewDecoder(f).Decode(&sh)
+	if err != nil {
+		return nil, fmt.Errorf("could not load bls share: error decode share: %v", err)
+	}
 	return &sh, err
 }
 
@@ -196,7 +198,7 @@ func DumpBLSKeyring(keyring *BLSKeyring, targetDir string) error {
 func LoadPubKey(base64Key string, numHolders int) (*share.PubPoly, error) {
 	suite := bn256.NewSuite()
 
-	keyBytes, err := base64.StdEncoding.DecodeString(string(base64Key))
+	keyBytes, err := base64.StdEncoding.DecodeString(base64Key)
 	if err != nil {
 		return nil, fmt.Errorf("failed to base64-decode master public key: %v", err)
 	}
