@@ -13,7 +13,9 @@ import (
 	"github.com/corestario/dkglib/lib/dealer"
 	"github.com/corestario/dkglib/lib/msgs"
 	"github.com/corestario/dkglib/lib/types"
+	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	tmtypes "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/libs/events"
 	"github.com/tendermint/tendermint/libs/log"
@@ -39,8 +41,7 @@ func (m *OnChainDKG) GetVerifier() (types.Verifier, error) {
 	return m.dealer.GetVerifier()
 }
 
-func (m *OnChainDKG) ProcessBlock() (error, bool) {
-	m.logger.Info("PROCESS BLOCK START")
+func (m *OnChainDKG) ProcessBlock(roundID int) (error, bool) {
 	for _, dataType := range []alias.DKGDataType{
 		alias.DKGPubKey,
 		alias.DKGDeal,
@@ -50,7 +51,7 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 		alias.DKGComplaint,
 		alias.DKGReconstructCommit,
 	} {
-		messages, err := m.getDKGMessages(dataType)
+		messages, err := m.getDKGMessages(dataType, roundID)
 		if err != nil {
 			return fmt.Errorf("failed to getDKGMessages: %v", err), false
 		}
@@ -79,7 +80,6 @@ func (m *OnChainDKG) ProcessBlock() (error, bool) {
 	}
 
 	if _, err := m.dealer.GetVerifier(); err == types.ErrDKGVerifierNotReady {
-		m.logger.Info("Verifier Not ready")
 		return nil, false
 	} else if err != nil {
 		return fmt.Errorf("DKG round failed: %v", err), false
@@ -96,6 +96,7 @@ func (m *OnChainDKG) StartRound(
 	startRound int) error {
 	m.dealer = dealer.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
 	if err := m.dealer.Start(); err != nil {
+		m.logger.Debug("Start on-chain dkg")
 		return fmt.Errorf("failed to start dealer: %v", err)
 	}
 
@@ -106,15 +107,44 @@ func (m *OnChainDKG) GetLosers() []*tmtypes.Validator {
 	return m.dealer.GetLosers()
 }
 
-func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
-	msg := msgs.NewMsgSendDKGData(data, m.cli.GetFromAddress())
-	if err := msg.ValidateBasic(); err != nil {
-		return fmt.Errorf("failed to validate basic: %v", err)
+func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
+	var messages []sdk.Msg
+	for _, item := range data {
+		item := item
+		msg := msgs.NewMsgSendDKGData(item, m.cli.GetFromAddress())
+		if err := msg.ValidateBasic(); err != nil {
+			return fmt.Errorf("failed to validate basic: %v", err)
+		}
+		messages = append(messages, msg)
 	}
 
-	err := utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, []sdk.Msg{msg}, false)
-	tempTxBldr := m.txBldr.WithSequence(m.txBldr.Sequence() + 1)
-	m.txBldr = &tempTxBldr
+	kb, err := keys.NewKeyBaseFromDir(m.cli.Home)
+	if err != nil {
+		m.logger.Error("on-chain DKG send msg error", "function", "NewKeyBaseFromDir", "error", err)
+		return err
+	}
+	keysList, err := kb.List()
+	if err != nil {
+		m.logger.Error("on-chain DKG send msg error", "function", "List", "error", err)
+		return err
+	}
+	if len(keysList) == 0 {
+		err := fmt.Errorf("key list error: account does not exist")
+		m.logger.Error("on-chain DKG send msg error", "error", err)
+		return err
+	}
+
+	accRetriever := authTypes.NewAccountRetriever(m.cli)
+	_, accSequence, err := accRetriever.GetAccountNumberSequence(keysList[0].GetAddress())
+	if err != nil {
+		m.logger.Error("on-chain DKG send msg error", "function", "GetAccountNumberSequence", "error", err)
+		return err
+	}
+
+	tmpTxBldr := m.txBldr.WithSequence(accSequence)
+	m.txBldr = &tmpTxBldr
+
+	err = utils.GenerateOrBroadcastMsgs(*m.cli, *m.txBldr, messages, false)
 	if err != nil {
 		return fmt.Errorf("failed to broadcast msg: %v", err)
 	}
@@ -122,8 +152,8 @@ func (m *OnChainDKG) sendMsg(data *alias.DKGData) error {
 	return nil
 }
 
-func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.MsgSendDKGData, error) {
-	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d", dataType), nil)
+func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType, roundID int) ([]*msgs.MsgSendDKGData, error) {
+	res, _, err := m.cli.QueryWithData(fmt.Sprintf("custom/randapp/dkgData/%d/%d", dataType, roundID), nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query for DKG data: %v", err)
 	}
@@ -132,10 +162,6 @@ func (m *OnChainDKG) getDKGMessages(dataType alias.DKGDataType) ([]*msgs.MsgSend
 	var dec = gob.NewDecoder(bytes.NewBuffer(res))
 	if err := dec.Decode(&data); err != nil {
 		return nil, fmt.Errorf("failed to decode DKG data: %v", err)
-	}
-
-	if dataType == 0 {
-		m.logger.Info("DKG DATA", "data", data, "dataLen", len(data))
 	}
 
 	return data, nil

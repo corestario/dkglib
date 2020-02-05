@@ -2,10 +2,8 @@ package offChain
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"sync"
-	"testing"
 
 	dkgalias "github.com/corestario/dkglib/lib/alias"
 	"github.com/corestario/dkglib/lib/blsShare"
@@ -19,15 +17,8 @@ import (
 )
 
 const (
-	BlocksAhead = 20 // Agree to swap verifier after around this number of blocks.
-	//DefaultDKGNumBlocks sets how often node should make DKG(in blocks)
-	DefaultDKGNumBlocks = 100
-)
-
-var _ dkgtypes.DKG = &OffChainDKG{}
-
-var (
-	ErrVerifierNotReady = errors.New("verifier not ready yet")
+	BlocksAhead         = 20  // Agree to swap verifier after around this number of blocks.
+	DefaultDKGNumBlocks = 100 //DefaultDKGNumBlocks sets how often node should make DKG(in blocks)
 )
 
 type OffChainDKG struct {
@@ -37,8 +28,7 @@ type OffChainDKG struct {
 	nextVerifier dkgtypes.Verifier
 	changeHeight int64
 
-	// message queue used for dkgState-related messages.
-	dkgMsgQueue      chan *dkgtypes.DKGDataMessage
+	dkgMsgQueue      chan *dkgtypes.DKGDataMessage // message queue used for dkgState-related messages.
 	dkgRoundToDealer map[int]dkglib.Dealer
 	dkgRoundID       int
 	dkgNumBlocks     int64
@@ -49,6 +39,8 @@ type OffChainDKG struct {
 	evsw    events.EventSwitch
 	chainID string
 }
+
+var _ dkgtypes.DKG = &OffChainDKG{}
 
 func NewOffChainDKG(evsw events.EventSwitch, chainID string, options ...DKGOption) *OffChainDKG {
 	dkg := &OffChainDKG{
@@ -184,38 +176,17 @@ func (m *OffChainDKG) HandleOffChainShare(
 		}
 	}
 	m.nextVerifier = verifier
-	// Only happens during the initialization of blockchain, when no validator existed yet.
-	if m.verifier.IsNil() {
-		m.verifier = verifier
-	}
 	m.changeHeight = (height + BlocksAhead) - ((height + BlocksAhead) % 5)
 	m.evsw.FireEvent(dkgtypes.EventDKGSuccessful, m.changeHeight)
 
-	m.Logger.Debug("handle off-chain share success")
+	m.Logger.Info("handle off-chain share success")
 
 	return false
 }
 
-func TestHandleOffChainShare(t *testing.T) {
-	evsw := events.NewEventSwitch()
-	offChain := NewOffChainDKG(evsw, "chain")
-	msg := dkgtypes.DKGDataMessage{
-		Data: &dkgalias.DKGData{
-			Type:        dkgalias.DKGDeal,
-			Addr:        []byte{},
-			RoundID:     0,
-			Data:        []byte{},
-			ToIndex:     1,
-			NumEntities: 1,
-		},
-	}
-	offChain.HandleOffChainShare(&msg, 0, nil, nil)
-}
-
 func (m *OffChainDKG) startRound(validators *alias.ValidatorSet) error {
-
 	m.dkgRoundID++
-	m.Logger.Info("dkgState: starting round", "round_id", m.dkgRoundID)
+	m.Logger.Info("OffChainDKG: starting round", "round_id", m.dkgRoundID)
 	_, ok := m.dkgRoundToDealer[m.dkgRoundID]
 	if !ok {
 		dealer := m.newDKGDealer(validators, m.privValidator, m.sendSignedMessage, m.evsw, m.Logger, m.dkgRoundID)
@@ -240,13 +211,21 @@ func (m *OffChainDKG) sendDKGMessage(msg *dkgalias.DKGData) {
 	}
 }
 
-func (m *OffChainDKG) sendSignedMessage(data *dkgalias.DKGData) error {
-	if err := m.Sign(data); err != nil {
-		m.Logger.Debug("Off-chain DKG: failed to sign data", "error", err)
-		return err
+func (m *OffChainDKG) sendSignedMessage(data []*dkgalias.DKGData) error {
+	if len(data) < 1 {
+		return fmt.Errorf("send signed message error: no data passed to this call")
 	}
-	m.Logger.Info("DKG: msg signed with signature", "signature", hex.EncodeToString(data.Signature))
-	m.sendDKGMessage(data)
+
+	for _, v := range data {
+		item := v
+		if err := m.Sign(item); err != nil {
+			m.Logger.Debug("Off-chain DKG: failed to sign data", "error", err)
+			return err
+		}
+		m.Logger.Info("DKG: msg signed with signature", "signature", hex.EncodeToString(item.Signature))
+		m.sendDKGMessage(item)
+	}
+
 	return nil
 }
 
@@ -323,8 +302,4 @@ func GetMockVerifier() verifierFunc {
 
 func (m *OffChainDKG) IsOnChain() bool {
 	return false
-}
-
-func (m *OffChainDKG) ProcessBlock() (error, bool) {
-	return nil, false
 }
