@@ -273,6 +273,10 @@ func (m *OffChainDKG) GetPrivValidator() alias.PrivValidator {
 	return m.privValidator
 }
 
+func (m *OffChainDKG) ProcessBlock(roundID int) (error, bool) {
+	return nil, true
+}
+
 func (m *OffChainDKG) GetLosers() []*tmtypes.Validator {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
