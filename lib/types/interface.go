@@ -14,6 +14,7 @@ type DKG interface {
 	Verifier() Verifier
 	MsgQueue() chan *DKGDataMessage
 	GetLosers() []*tmtypes.Validator
+	IsOnChain() bool
 	StartDKGRound(*alias.ValidatorSet) error
 	NewBlockNotify()
 }

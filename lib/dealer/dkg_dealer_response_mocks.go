@@ -14,7 +14,7 @@ type DKGMockDontSendOneResponse struct {
 	logger log.Logger
 }
 
-func NewDKGMockDealerNoResponse(validators *types.ValidatorSet, pv types.PrivValidator, sendMsgCb func(*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
+func NewDKGMockDealerNoResponse(validators *types.ValidatorSet, pv types.PrivValidator, sendMsgCb func([]*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
 	return &DKGMockDontSendOneResponse{NewDKGDealer(validators, pv, sendMsgCb, eventFirer, logger, startRound), logger}
 }
 
@@ -51,7 +51,7 @@ func (m *DKGMockDontSendOneResponse) ProcessDeals() (error, bool) {
 		return err, true
 	}
 	for _, msg := range messages {
-		if err = m.Dealer.SendMsgCb(msg); err != nil {
+		if err = m.Dealer.SendMsgCb([]*alias.DKGData{msg}); err != nil {
 			return err, true
 		}
 	}
@@ -79,7 +79,7 @@ type DKGMockDontSendAnyResponses struct {
 	logger log.Logger
 }
 
-func NewDKGMockDealerAnyResponses(validators *types.ValidatorSet, pv types.PrivValidator, sendMsgCb func(*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
+func NewDKGMockDealerAnyResponses(validators *types.ValidatorSet, pv types.PrivValidator, sendMsgCb func([]*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
 	return &DKGMockDontSendAnyResponses{NewDKGDealer(validators, pv, sendMsgCb, eventFirer, logger, startRound), logger}
 }
 

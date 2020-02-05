@@ -54,7 +54,7 @@ type Dealer interface {
 	HandleDKGReconstructCommit(msg *alias.DKGData) error
 	ProcessReconstructCommits() (err error, ready bool)
 	GetVerifier() (types.Verifier, error)
-	SendMsgCb(*alias.DKGData) error
+	SendMsgCb([]*alias.DKGData) error
 	VerifyMessage(msg types.DKGDataMessage) error
 }
 
@@ -62,7 +62,7 @@ type DKGDealer struct {
 	DealerState
 	eventFirer events.Fireable
 
-	sendMsgCb func(*alias.DKGData) error
+	sendMsgCb func([]*alias.DKGData) error
 	logger    log.Logger
 
 	pubKey      kyber.Point
@@ -100,9 +100,9 @@ func (ds DealerState) GetValidatorsCount() int {
 
 func (ds DealerState) GetRoundID() int { return ds.roundID }
 
-type DKGDealerConstructor func(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer
+type DKGDealerConstructor func(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func([]*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer
 
-func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func(*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
+func NewDKGDealer(validators *tmtypes.ValidatorSet, pv tmtypes.PrivValidator, sendMsgCb func([]*alias.DKGData) error, eventFirer events.Fireable, logger log.Logger, startRound int) Dealer {
 	return &DKGDealer{
 		DealerState: DealerState{
 			validators: validators,
@@ -140,12 +140,12 @@ func (d *DKGDealer) Start() error {
 	}
 
 	d.logger.Info("dkgState: sending pub key", "key", d.pubKey.String())
-	err := d.SendMsgCb(&alias.DKGData{
+	err := d.SendMsgCb([]*alias.DKGData{{
 		Type:    alias.DKGPubKey,
 		RoundID: d.roundID,
 		Addr:    d.addrBytes,
 		Data:    buf.Bytes(),
-	})
+	}})
 	if err != nil {
 		return fmt.Errorf("failed to sign message: %v", err)
 	}
@@ -249,10 +249,8 @@ func (d *DKGDealer) SendDeals() (error, bool) {
 		return fmt.Errorf("failed to get deals: %v", err), true
 	}
 
-	for _, msg := range messages {
-		if err = d.SendMsgCb(msg); err != nil {
-			return fmt.Errorf("failed to sign message: %v", err), true
-		}
+	if err = d.SendMsgCb(messages); err != nil {
+		return fmt.Errorf("failed to sign message: %v", err), true
 	}
 
 	d.logger.Info("dkgState: sending deals", "deals", len(messages))
@@ -357,10 +355,8 @@ func (d *DKGDealer) ProcessDeals() (error, bool) {
 		return fmt.Errorf("failed to get responses: %v", err), true
 	}
 
-	for _, responseMsg := range responseMessages {
-		if err = d.SendMsgCb(responseMsg); err != nil {
-			return fmt.Errorf("failed to sign message: %v", err), true
-		}
+	if err = d.SendMsgCb(responseMessages); err != nil {
+		return fmt.Errorf("failed to sign message: %v", err), true
 	}
 
 	d.logger.Debug("DKG process deals success")
@@ -442,10 +438,8 @@ func (d *DKGDealer) ProcessResponses() (error, bool) {
 		return fmt.Errorf("failed to get justifications: %v", err), true
 	}
 
-	for _, msg := range messages {
-		if err = d.SendMsgCb(msg); err != nil {
-			return fmt.Errorf("failed to sign message: %v", err), true
-		}
+	if err = d.SendMsgCb(messages); err != nil {
+		return fmt.Errorf("failed to sign message: %v", err), true
 	}
 
 	d.logger.Debug("DKG process responses success")
@@ -535,6 +529,8 @@ func (d *DKGDealer) HandleDKGJustification(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessJustifications() (error, bool) {
 	if !d.IsJustificationsReady() {
+		d.logger.Debug("justifications are not ready")
+
 		return nil, false
 	}
 	d.logger.Info("dkgState: processing justifications")
@@ -561,7 +557,7 @@ func (d *DKGDealer) ProcessJustifications() (error, bool) {
 		NumEntities: len(commits.Commitments),
 	}
 
-	err = d.SendMsgCb(message)
+	err = d.SendMsgCb([]*alias.DKGData{message})
 	if err != nil {
 		return fmt.Errorf("failed to sign message: %v", err), true
 	}
@@ -648,6 +644,7 @@ func (d *DKGDealer) HandleDKGCommit(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessCommits() (error, bool) {
 	if d.commits.messagesCount < len(d.instance.QUAL()) {
+		d.logger.Debug("commits messages count is not enough", "commits", d.commits.messagesCount, "qual len", len(d.instance.QUAL()))
 		return nil, false
 	}
 	d.logger.Info("dkgState: processing commits")
@@ -686,7 +683,7 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 
 	if !alreadyFinished {
 		for _, msg := range messages {
-			if err := d.SendMsgCb(msg); err != nil {
+			if err := d.SendMsgCb([]*alias.DKGData{msg}); err != nil {
 				return fmt.Errorf("failed to sign message: %v", err), true
 			}
 
@@ -724,6 +721,7 @@ func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
 
 func (d *DKGDealer) ProcessComplaints() (error, bool) {
 	if d.complaints.messagesCount < len(d.instance.QUAL())-1 {
+		d.logger.Debug("complaints messages count is not enough", "commits", d.complaints.messagesCount, "qual len", len(d.instance.QUAL())-1)
 		return nil, false
 	}
 	d.logger.Info("dkgState: processing commits")
@@ -753,7 +751,7 @@ func (d *DKGDealer) ProcessComplaints() (error, bool) {
 				}
 			}
 
-			if err := d.SendMsgCb(msg); err != nil {
+			if err := d.SendMsgCb([]*alias.DKGData{msg}); err != nil {
 				return fmt.Errorf("failed to sign message: %v", err), true
 			}
 
@@ -851,7 +849,7 @@ func (d *DKGDealer) VerifyMessage(msg types.DKGDataMessage) error {
 	return nil
 }
 
-func (d *DKGDealer) SendMsgCb(msg *alias.DKGData) error {
+func (d *DKGDealer) SendMsgCb(msg []*alias.DKGData) error {
 	return d.sendMsgCb(msg)
 }
 

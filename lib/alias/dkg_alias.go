@@ -3,10 +3,10 @@ package alias
 import (
 	"os"
 
-	"github.com/prometheus/common/log"
 	"github.com/tendermint/go-amino"
 	tmalias "github.com/tendermint/tendermint/alias"
 	"github.com/tendermint/tendermint/crypto"
+	"github.com/tendermint/tendermint/libs/log"
 )
 
 type DKGDataType int
@@ -31,9 +31,7 @@ type DKGData struct {
 	Data        []byte // Data is going to keep serialized kyber objects.
 	ToIndex     int    // ID of the participant for whom the message is; might be not set
 	NumEntities int    // Number of sub-entities in the Data array, sometimes required for unmarshaling.
-
-	//Signature for verifying data
-	Signature []byte
+	Signature   []byte //Signature for verifying data
 }
 
 func init() {
@@ -41,14 +39,12 @@ func init() {
 }
 
 func (m DKGData) SignBytes(string) []byte {
-	var (
-		sb  []byte
-		err error
-	)
 	m.Signature = nil
-	if sb, err = Cdc.MarshalBinaryLengthPrefixed(m); err != nil {
-		lg := log.NewLogger(os.Stdout)
-		lg.Errorf("DKGData type: %v, RoundID: %v, ToIndex: %v, SignBytes Marshal Error: %v", m.Type, m.RoundID, m.ToIndex, err)
+	sb, err := Cdc.MarshalBinaryLengthPrefixed(m)
+	if err != nil {
+		logger := log.NewTMLogger(os.Stdout)
+		logger.Error("Codec MarshalBinaryLengthPrefixed error",
+			"DKGData type", m.Type, "RoundID", m.RoundID, "ToIndex", m.ToIndex, "Error", err)
 		panic(err)
 	}
 	return sb
