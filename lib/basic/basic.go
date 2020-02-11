@@ -245,3 +245,7 @@ func (m *DKGBasic) initOnChain() error {
 	m.onChain = onChain.NewOnChainDKG(cliCtx, &txBldr)
 	return nil
 }
+
+func (m *DKGBasic) ProcessBlock(roundID int) (error, bool) {
+	return m.onChain.ProcessBlock(roundID)
+}

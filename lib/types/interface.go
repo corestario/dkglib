@@ -17,4 +17,5 @@ type DKG interface {
 	IsOnChain() bool
 	StartDKGRound(*alias.ValidatorSet) error
 	NewBlockNotify()
+	ProcessBlock(roundID int) (error, bool)
 }
