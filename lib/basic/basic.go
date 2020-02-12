@@ -97,7 +97,6 @@ func (m *DKGBasic) HandleOffChainShare(
 	m.mtx.RUnlock()
 
 	switchToOnChain := m.offChain.HandleOffChainShare(dkgMsg, height, validators, pubKey)
-	switchToOnChain = true
 	// have to switch to on-chain
 	if switchToOnChain {
 		m.logger.Info("Switch to on-chain DKG")
