@@ -42,7 +42,7 @@ func (m *DKGMockDontSendOneDeal) GenerateTransitions() {
 }
 
 func (m *DKGMockDontSendOneDeal) SendDeals() (error, bool) {
-	if !m.Dealer.IsReady() {
+	if !m.Dealer.IsPubKeysReady() {
 		return nil, false
 	}
 
@@ -107,7 +107,7 @@ func (m *DKGMockDontSendAnyDeal) GenerateTransitions() {
 }
 
 func (m *DKGMockDontSendAnyDeal) SendDeals() (error, bool) {
-	if !m.Dealer.IsReady() {
+	if !m.Dealer.IsPubKeysReady() {
 		return nil, false
 	}
 	//hack. we need it to init dkgInstance into GetDeals

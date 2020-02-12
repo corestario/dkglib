@@ -22,11 +22,12 @@ import (
 )
 
 type OnChainDKG struct {
-	cli       *context.Context
-	txBldr    *authtxb.TxBuilder
-	dealer    dealer.Dealer
-	typesList []alias.DKGDataType
-	logger    log.Logger
+	cli             *context.Context
+	txBldr          *authtxb.TxBuilder
+	dealer          dealer.Dealer
+	typesList       []alias.DKGDataType
+	logger          log.Logger
+	lastAccSequence int
 }
 
 func NewOnChainDKG(cli *context.Context, txBldr *authtxb.TxBuilder) *OnChainDKG {
@@ -85,7 +86,7 @@ func (m *OnChainDKG) StartRound(
 	eventFirer events.Fireable,
 	logger log.Logger,
 	startRound int) error {
-	m.dealer = dealer.NewDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
+	m.dealer = dealer.NewOnChainDKGDealer(validators, pv, m.sendMsg, eventFirer, logger, startRound)
 	if err := m.dealer.Start(); err != nil {
 		m.logger.Debug("Start on-chain dkg")
 		return fmt.Errorf("failed to start dealer: %v", err)
@@ -131,6 +132,8 @@ func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
 		m.logger.Error("on-chain DKG send msg error", "function", "GetAccountNumberSequence", "error", err)
 		return err
 	}
+
+	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>", accSequence)
 
 	tmpTxBldr := m.txBldr.WithSequence(accSequence)
 	m.txBldr = &tmpTxBldr

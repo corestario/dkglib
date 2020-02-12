@@ -33,7 +33,7 @@ type Dealer interface {
 	HandleDKGPubKey(msg *alias.DKGData) error
 	SetTransitions(t []transition)
 	SendDeals() (err error, ready bool)
-	IsReady() bool
+	IsPubKeysReady() bool
 	GetDeals() ([]*alias.DKGData, error)
 	HandleDKGDeal(msg *alias.DKGData) error
 	ProcessDeals() (err error, ready bool)
@@ -238,7 +238,7 @@ func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
 }
 
 func (d *DKGDealer) SendDeals() (error, bool) {
-	if !d.IsReady() {
+	if !d.IsPubKeysReady() {
 		d.logger.Debug("DKG send deals: dealer is not ready")
 		return nil, false
 	}
@@ -258,7 +258,7 @@ func (d *DKGDealer) SendDeals() (error, bool) {
 	return err, true
 }
 
-func (d *DKGDealer) IsReady() bool {
+func (d *DKGDealer) IsPubKeysReady() bool {
 	return len(d.pubKeys) == d.validators.Size()
 }
 
@@ -404,7 +404,7 @@ func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
 	)
 	if err := dec.Decode(resp); err != nil {
 		d.losers = append(d.losers, crypto.Address(msg.Addr))
-		return fmt.Errorf("failed to decode deal: %v", err)
+		return fmt.Errorf("failed to response deal: %v", err)
 	}
 
 	// Unlike the procedure for deals, with responses we do care about other
@@ -418,7 +418,7 @@ func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
 
 	d.logger.Info("dkgState: response is intended for us, storing")
 
-	d.responses.add(msg.GetAddrString(), resp)
+	d.responses.add(msg.GetAddrString(), 0, resp)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -514,11 +514,11 @@ func (d *DKGDealer) HandleDKGJustification(msg *alias.DKGData) error {
 		justification = &dkg.Justification{}
 		if err := dec.Decode(justification); err != nil {
 			d.losers = append(d.losers, crypto.Address(msg.Addr))
-			return fmt.Errorf("failed to decode deal: %v", err)
+			return fmt.Errorf("failed to decode justification: %v", err)
 		}
 	}
 
-	d.justifications.add(msg.GetAddrString(), justification)
+	d.justifications.add(msg.GetAddrString(), 0, justification)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -633,7 +633,7 @@ func (d *DKGDealer) HandleDKGCommit(msg *alias.DKGData) error {
 		d.losers = append(d.losers, crypto.Address(msg.Addr))
 		return fmt.Errorf("failed to decode commit: %v", err)
 	}
-	d.commits.add(msg.GetAddrString(), commits)
+	d.commits.add(msg.GetAddrString(), 0, commits)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -710,7 +710,7 @@ func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
 		}
 	}
 
-	d.complaints.add(msg.GetAddrString(), complaint)
+	d.complaints.add(msg.GetAddrString(), 0, complaint)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -773,7 +773,7 @@ func (d *DKGDealer) HandleDKGReconstructCommit(msg *alias.DKGData) error {
 		}
 	}
 
-	d.reconstructCommits.add(msg.GetAddrString(), rc)
+	d.reconstructCommits.add(msg.GetAddrString(), 0, rc)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -908,6 +908,7 @@ func newMessageStore(n int) *messageStore {
 	return &messageStore{
 		maxMessagesFromPeer: n,
 		addrToData:          make(map[string][]interface{}),
+		indexToData:         make(map[int][]interface{}),
 	}
 }
 
@@ -921,7 +922,7 @@ func (ms *messageStore) add(addr string, index int, val interface{}) {
 
 	data = ms.indexToData[index]
 	data = append(data, val)
-	ms.addrToData[addr] = data
+	ms.indexToData[index] = data
 
 	ms.messagesCount++
 }
