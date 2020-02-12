@@ -25,6 +25,7 @@ type Verifier interface {
 	VerifyRandomShare(addr string, prevRandomData, currRandomData []byte) error
 	VerifyRandomData(prevRandomData, currRandomData []byte) error
 	Recover(msg []byte, precommits []blsShare.BLSSigner) ([]byte, error)
+	IsNil() bool
 }
 
 type MockVerifier struct{}
@@ -40,4 +41,7 @@ func (m *MockVerifier) VerifyRandomData(prevRandomData, currRandomData []byte) e
 }
 func (m *MockVerifier) Recover(msg []byte, precommits []blsShare.BLSSigner) ([]byte, error) {
 	return []byte{}, nil
+}
+func (m *MockVerifier) IsNil() bool {
+	return false
 }
