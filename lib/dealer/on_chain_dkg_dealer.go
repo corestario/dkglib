@@ -269,7 +269,6 @@ func (d *onChainDealer) ProcessDeals() (error, bool) {
 			Addr:    d.addrBytes,
 			Data:    buf.Bytes(),
 		})
-		fmt.Println("...............................................................", "DST INDEX", resp.Index, "SRC INDEX", resp.Response.Index)
 	}
 
 	d.logger.Debug("SendDeals, sending response messages", "num_messages", len(responseMessages))
