@@ -133,8 +133,6 @@ func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
 		return err
 	}
 
-	fmt.Println(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>", accSequence)
-
 	tmpTxBldr := m.txBldr.WithSequence(accSequence)
 	m.txBldr = &tmpTxBldr
 
