@@ -33,7 +33,7 @@ type Dealer interface {
 	HandleDKGPubKey(msg *alias.DKGData) error
 	SetTransitions(t []transition)
 	SendDeals() (err error, ready bool)
-	IsReady() bool
+	IsPubKeysReady() bool
 	GetDeals() ([]*alias.DKGData, error)
 	HandleDKGDeal(msg *alias.DKGData) error
 	ProcessDeals() (err error, ready bool)
@@ -238,7 +238,7 @@ func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
 }
 
 func (d *DKGDealer) SendDeals() (error, bool) {
-	if !d.IsReady() {
+	if !d.IsPubKeysReady() {
 		d.logger.Debug("DKG send deals: dealer is not ready")
 		return nil, false
 	}
@@ -258,7 +258,7 @@ func (d *DKGDealer) SendDeals() (error, bool) {
 	return err, true
 }
 
-func (d *DKGDealer) IsReady() bool {
+func (d *DKGDealer) IsPubKeysReady() bool {
 	return len(d.pubKeys) == d.validators.Size()
 }
 
@@ -404,7 +404,7 @@ func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
 	)
 	if err := dec.Decode(resp); err != nil {
 		d.losers = append(d.losers, crypto.Address(msg.Addr))
-		return fmt.Errorf("failed to decode deal: %v", err)
+		return fmt.Errorf("failed to response deal: %v", err)
 	}
 
 	// Unlike the procedure for deals, with responses we do care about other
@@ -418,7 +418,7 @@ func (d *DKGDealer) HandleDKGResponse(msg *alias.DKGData) error {
 
 	d.logger.Info("dkgState: response is intended for us, storing")
 
-	d.responses.add(msg.GetAddrString(), resp)
+	d.responses.add(msg.GetAddrString(), 0, resp)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -478,7 +478,7 @@ func (d *DKGDealer) processResponse(resp *dkg.Response) ([]byte, error) {
 func (d *DKGDealer) GetJustifications() ([]*alias.DKGData, error) {
 	var messages []*alias.DKGData
 	d.logger.Debug("DKG delaer get justification start")
-	for _, peerResponses := range d.responses.data {
+	for _, peerResponses := range d.responses.addrToData {
 		for _, response := range peerResponses {
 			resp := response.(*dkg.Response)
 			var msg = &alias.DKGData{
@@ -514,11 +514,11 @@ func (d *DKGDealer) HandleDKGJustification(msg *alias.DKGData) error {
 		justification = &dkg.Justification{}
 		if err := dec.Decode(justification); err != nil {
 			d.losers = append(d.losers, crypto.Address(msg.Addr))
-			return fmt.Errorf("failed to decode deal: %v", err)
+			return fmt.Errorf("failed to decode justification: %v", err)
 		}
 	}
 
-	d.justifications.add(msg.GetAddrString(), justification)
+	d.justifications.add(msg.GetAddrString(), 0, justification)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -572,7 +572,7 @@ func (d *DKGDealer) IsJustificationsReady() bool {
 }
 
 func (d DKGDealer) GetCommits() (*dkg.SecretCommits, error) {
-	for _, peerJustifications := range d.justifications.data {
+	for _, peerJustifications := range d.justifications.addrToData {
 		for _, just := range peerJustifications {
 			justification := just.(*dkg.Justification)
 			if justification != nil {
@@ -633,7 +633,7 @@ func (d *DKGDealer) HandleDKGCommit(msg *alias.DKGData) error {
 		d.losers = append(d.losers, crypto.Address(msg.Addr))
 		return fmt.Errorf("failed to decode commit: %v", err)
 	}
-	d.commits.add(msg.GetAddrString(), commits)
+	d.commits.add(msg.GetAddrString(), 0, commits)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -651,7 +651,7 @@ func (d *DKGDealer) ProcessCommits() (error, bool) {
 
 	var alreadyFinished = true
 	var messages []*alias.DKGData
-	for _, commitsFromAddr := range d.commits.data {
+	for _, commitsFromAddr := range d.commits.addrToData {
 		for _, c := range commitsFromAddr {
 			commits := c.(*dkg.SecretCommits)
 			var msg = &alias.DKGData{
@@ -710,7 +710,7 @@ func (d *DKGDealer) HandleDKGComplaint(msg *alias.DKGData) error {
 		}
 	}
 
-	d.complaints.add(msg.GetAddrString(), complaint)
+	d.complaints.add(msg.GetAddrString(), 0, complaint)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -726,7 +726,7 @@ func (d *DKGDealer) ProcessComplaints() (error, bool) {
 	}
 	d.logger.Info("dkgState: processing commits")
 
-	for _, peerComplaints := range d.complaints.data {
+	for _, peerComplaints := range d.complaints.addrToData {
 		for _, c := range peerComplaints {
 			complaint := c.(*dkg.ComplaintCommits)
 			var msg = &alias.DKGData{
@@ -773,7 +773,7 @@ func (d *DKGDealer) HandleDKGReconstructCommit(msg *alias.DKGData) error {
 		}
 	}
 
-	d.reconstructCommits.add(msg.GetAddrString(), rc)
+	d.reconstructCommits.add(msg.GetAddrString(), 0, rc)
 
 	if err := d.Transit(); err != nil {
 		return fmt.Errorf("failed to Transit: %v", err)
@@ -789,7 +789,7 @@ func (d *DKGDealer) ProcessReconstructCommits() (error, bool) {
 		return nil, false
 	}
 
-	for _, peerReconstructCommits := range d.reconstructCommits.data {
+	for _, peerReconstructCommits := range d.reconstructCommits.addrToData {
 		for _, reconstructCommit := range peerReconstructCommits {
 			rc := reconstructCommit.(*dkg.ReconstructCommits)
 			if rc == nil {
@@ -897,23 +897,32 @@ type messageStore struct {
 	// Max number of messages of the same type from one peer per round
 	maxMessagesFromPeer int
 
-	// Map which store messages. Key is a peer's address, value is data
-	data map[string][]interface{}
+	// Map which stores messages. Key is a peer's address, value is data
+	addrToData map[string][]interface{}
+
+	// Map which stores messages (same as addrToData). Key is a peer's index, value is data.
+	indexToData map[int][]interface{}
 }
 
 func newMessageStore(n int) *messageStore {
 	return &messageStore{
 		maxMessagesFromPeer: n,
-		data:                make(map[string][]interface{}),
+		addrToData:          make(map[string][]interface{}),
+		indexToData:         make(map[int][]interface{}),
 	}
 }
 
-func (ms *messageStore) add(addr string, val interface{}) {
-	data := ms.data[addr]
+func (ms *messageStore) add(addr string, index int, val interface{}) {
+	data := ms.addrToData[addr]
 	if len(data) == ms.maxMessagesFromPeer {
 		return
 	}
 	data = append(data, val)
-	ms.data[addr] = data
+	ms.addrToData[addr] = data
+
+	data = ms.indexToData[index]
+	data = append(data, val)
+	ms.indexToData[index] = data
+
 	ms.messagesCount++
 }
