@@ -217,7 +217,6 @@ func (d *DKGDealer) PopLosers() []*tmtypes.Validator {
 //////////////////////////////////////////////////////////////////////////////
 
 func (d *DKGDealer) HandleDKGPubKey(msg *alias.DKGData) error {
-	d.logger.Info("dkgState: received PubKey message", "from", msg.GetAddrString())
 	var (
 		dec    = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		pubKey = d.suiteG2.Point()
@@ -309,7 +308,6 @@ func (d *DKGDealer) GetDeals() ([]*alias.DKGData, error) {
 }
 
 func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
-	d.logger.Info("dkgState: received Deal message", "from", msg.GetAddrString())
 	var (
 		dec  = gob.NewDecoder(bytes.NewBuffer(msg.Data))
 		deal = &dkg.Deal{ // We need to initialize everything down to the kyber.Point to avoid nil panics.
@@ -325,7 +323,7 @@ func (d *DKGDealer) HandleDKGDeal(msg *alias.DKGData) error {
 
 	// We expect to keep N - 1 deals (we don't care about the deals sent to other participants).
 	if d.participantID != msg.ToIndex {
-		d.logger.Debug("dkgState: rejecting deal (intended for another participant)", "intended", msg.ToIndex)
+		d.logger.Debug("dkgState: rejecting deal (intended for another participant)", "intended", msg.ToIndex, "own_index", d.participantID)
 		return nil
 	}
 
