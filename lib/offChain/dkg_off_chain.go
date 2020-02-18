@@ -132,7 +132,7 @@ func (m *OffChainDKG) HandleOffChainShare(
 	var err error
 	switch msg.Type {
 	case dkgalias.DKGPubKey:
-		m.Logger.Info("dkgState: received PubKey message", "from", fromAddr)
+		m.Logger.Info("dkgState: received PubKey message", "from", fromAddr, "own", m.privValidator.GetPubKey().Address())
 		err = dealer.HandleDKGPubKey(msg)
 	case dkgalias.DKGDeal:
 		m.Logger.Info("dkgState: received Deal message", "from", fromAddr)
@@ -238,7 +238,11 @@ func (m *OffChainDKG) Sign(data *dkgalias.DKGData) error {
 }
 
 func (m *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet) {
-	if m.changeHeight == height {
+	if m.nextVerifier == nil {
+		m.Logger.Info("OffChainDKG: next verifier is nil, not changing verifier", m.changeHeight, height)
+		return
+	}
+	if m.changeHeight == height || (height == -1) {
 		m.Logger.Info("dkgState: time to update verifier", m.changeHeight, height)
 		m.verifier, m.nextVerifier = m.nextVerifier, nil
 		m.changeHeight = 0
