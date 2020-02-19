@@ -238,12 +238,12 @@ func (m *OffChainDKG) Sign(data *dkgalias.DKGData) error {
 }
 
 func (m *OffChainDKG) CheckDKGTime(height int64, validators *alias.ValidatorSet) {
-	if m.nextVerifier == nil && (height == -1) {
+	if m.nextVerifier == nil {
 		m.Logger.Info("OffChainDKG: next verifier is nil, not changing verifier", m.changeHeight, height)
 		return
 	}
 
-	if m.changeHeight == height {
+	if (height == -1) || m.changeHeight == height {
 		m.Logger.Info("dkgState: time to update verifier", m.changeHeight, height)
 		m.verifier, m.nextVerifier = m.nextVerifier, nil
 		m.changeHeight = 0
