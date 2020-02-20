@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"os"
 
-	authtxb "github.com/corestario/cosmos-utils/client/authtypes"
-	"github.com/corestario/cosmos-utils/client/context"
-	"github.com/corestario/cosmos-utils/client/utils"
+	authtxb "github.com/corestario/cosmos-client/authtypes"
+	"github.com/corestario/cosmos-client/context"
+	"github.com/corestario/cosmos-client/utils"
 	"github.com/corestario/dkglib/lib/alias"
 	"github.com/corestario/dkglib/lib/dealer"
 	"github.com/corestario/dkglib/lib/msgs"

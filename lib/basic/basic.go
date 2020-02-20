@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/corestario/cosmos-utils/client/authtypes"
-	"github.com/corestario/cosmos-utils/client/context"
-	"github.com/corestario/cosmos-utils/client/utils"
+	"github.com/corestario/cosmos-client/authtypes"
+	"github.com/corestario/cosmos-client/context"
+	"github.com/corestario/cosmos-client/utils"
 	"github.com/corestario/dkglib/lib/msgs"
 	"github.com/corestario/dkglib/lib/offChain"
 	"github.com/corestario/dkglib/lib/onChain"

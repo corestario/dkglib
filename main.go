@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	authtxb "github.com/corestario/cosmos-utils/client/authtypes"
-	"github.com/corestario/cosmos-utils/client/context"
-	"github.com/corestario/cosmos-utils/client/utils"
+	authtxb "github.com/corestario/cosmos-client/authtypes"
+	"github.com/corestario/cosmos-client/context"
+	"github.com/corestario/cosmos-client/utils"
 	msgs "github.com/corestario/dkglib/lib/msgs"
 	onChain "github.com/corestario/dkglib/lib/onChain"
 	"github.com/cosmos/cosmos-sdk/client/keys"
