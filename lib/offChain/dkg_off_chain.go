@@ -273,6 +273,14 @@ func (m *OffChainDKG) SetVerifier(v dkgtypes.Verifier) {
 	m.verifier = v
 }
 
+func (m *OffChainDKG) SetNextVerifier(v dkgtypes.Verifier) {
+	m.nextVerifier = v
+}
+
+func (m *OffChainDKG) SetChangeHeight(ch int64) {
+	m.changeHeight = ch
+}
+
 func (m *OffChainDKG) GetPrivValidator() alias.PrivValidator {
 	return m.privValidator
 }
