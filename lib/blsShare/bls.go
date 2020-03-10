@@ -160,6 +160,16 @@ func LoadBLSShareJSON(path string) (*BLSShareJSON, error) {
 	return &sh, err
 }
 
+func DumpMasterPubKey(poly *share.PubPoly) (string, error) {
+	pubBuf := bytes.NewBuffer(nil)
+	pubEnc := gob.NewEncoder(pubBuf)
+	_, pubKeyCommits := poly.Info()
+	if err := pubEnc.Encode(pubKeyCommits); err != nil {
+		return "", fmt.Errorf("failed to encode master public key: %v", err)
+	}
+	return base64.StdEncoding.EncodeToString(pubBuf.Bytes()), nil
+}
+
 func DumpBLSKeyring(keyring *BLSKeyring, targetDir string) error {
 	if _, err := os.Stat(targetDir); os.IsNotExist(err) {
 		return fmt.Errorf("failed to dump keyring, directory does not exist")
