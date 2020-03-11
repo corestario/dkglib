@@ -824,7 +824,7 @@ func (d *DKGDealer) GetVerifier() (types.Verifier, error) {
 			Pub:  &share.PubShare{I: d.participantID, V: d.pubKey},
 			Priv: distKeyShare.PriShare(),
 		}
-		t, n = (d.validators.Size() / 3) * 2, d.validators.Size()
+		t, n = (d.validators.Size() / 3) * 2 + 1, d.validators.Size()
 	)
 
 	return blsShare.NewBLSVerifier(masterPubKey, newShare, t, n), nil
