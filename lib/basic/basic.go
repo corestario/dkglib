@@ -2,6 +2,8 @@ package basic
 
 import (
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/spf13/viper"
 	"os"
 	"sync"
 	"time"
@@ -197,7 +199,8 @@ func (m *DKGBasic) initOnChain() error {
 		return err
 	}
 
-	kb, err := keys.NewKeyBaseFromDir(cliCtx.Home)
+	viper.Set(flags.FlagKeyringBackend, "test")
+	kb, err := keys.NewKeyringFromDir(cliCtx.Home, nil)
 	if err != nil {
 		m.logger.Error("Init on-chain DKG error", "function", "NewKeyBaseFromDir", "error", err)
 		return err

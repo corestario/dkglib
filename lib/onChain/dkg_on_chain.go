@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"github.com/cosmos/cosmos-sdk/client/flags"
+	"github.com/spf13/viper"
 	"os"
 
 	authtxb "github.com/corestario/cosmos-utils/client/authtypes"
@@ -110,7 +112,8 @@ func (m *OnChainDKG) sendMsg(data []*alias.DKGData) error {
 		messages = append(messages, msg)
 	}
 
-	kb, err := keys.NewKeyBaseFromDir(m.cli.Home)
+	viper.Set(flags.FlagKeyringBackend, "test")
+	kb, err := keys.NewKeyringFromDir(m.cli.Home, nil)
 	if err != nil {
 		m.logger.Error("on-chain DKG send msg error", "function", "NewKeyBaseFromDir", "error", err)
 		return err
