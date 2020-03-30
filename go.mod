@@ -3,6 +3,7 @@ module github.com/corestario/dkglib
 go 1.12
 
 require (
+	github.com/VividCortex/gohistogram v1.0.0 // indirect
 	github.com/corestario/cosmos-utils/client v0.1.0
 	github.com/cosmos/cosmos-sdk v0.28.2-0.20190827131926-5aacf454e1b6
 	github.com/tendermint/go-amino v0.15.1
