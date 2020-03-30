@@ -16,8 +16,6 @@ replace github.com/tendermint/tendermint => ./../tendermint
 
 replace github.com/cosmos/cosmos-sdk => ./../cosmos-sdk
 
-replace github.com/corestario/cosmos-utils/client => ./../cosmos-utils/client
-
 replace github.com/corestario/dkglib => ./
 
 replace go.dedis.ch/kyber/v3 => ./../kyber
