@@ -139,6 +139,15 @@ func (m *DKGBasic) HandleOffChainShare(
 						m.logger.Info("All instances finished on-chain DKG, O.K.")
 						m.mtx.Lock()
 						m.isOnChain = false
+
+						verifier, err := m.onChain.GetVerifier()
+						if err != nil {
+							m.logger.Error("On-chain DKG verifier error", "error", err)
+							panic(err)
+						}
+						m.offChain.SetNextVerifier(verifier)
+						m.offChain.SetChangeHeight((height + offChain.BlocksAhead) - ((height + offChain.BlocksAhead) % 5))
+
 						m.mtx.Unlock()
 						return
 					}
